@@ -4,7 +4,8 @@
 local FL_RawTonumber = tonumber
 
 function FL_IsFiniteNumber(value)
-    return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge
+    return type(value)=="number" and value==value and
+           value~=math.huge and value~=-math.huge
 end
 
 local function FL_CheckedNumber(value)
@@ -14,9 +15,10 @@ end
 
 function FL_ToNumber(value,base)
     if type(value)=="number" then return FL_CheckedNumber(value) end
-    if type(value)~="string" then return FL_CheckedNumber(FL_RawTonumber(value,base)) end
+    if type(value)~="string" then
+        return FL_CheckedNumber(FL_RawTonumber(value,base))
+    end
 
-    -- Preserve normal Lua semantics when an explicit base is supplied.
     if base~=nil then return FL_CheckedNumber(FL_RawTonumber(value,base)) end
 
     local n=FL_CheckedNumber(FL_RawTonumber(value))
@@ -26,4 +28,10 @@ function FL_ToNumber(value,base)
     if n~=nil then return n end
 
     return FL_CheckedNumber(FL_RawTonumber((value:gsub("%.",","))))
+end
+
+function FL_ToNonNegativeInteger(value)
+    local n=FL_ToNumber(value)
+    if n==nil or n<0 or n~=math.floor(n) then return nil end
+    return n
 end
