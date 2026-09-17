@@ -147,8 +147,11 @@ function FL_Window:Constructor()
 	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=140}, {x=125,y=20} )
 	local slot = Turbine.UI.Lotro.Quickslot()
 	slot:SetParent( self.locButton )
-    slot:SetPosition( 2,2 )
-    slot:SetSize( 99, 15 )
+    -- The alias Quickslot must receive the real player click in LOTRO.
+    -- Make it invisible and cover the whole visible button.
+    slot:SetPosition( 0,0 )
+    slot:SetSize( self.locButton:GetWidth(), self.locButton:GetHeight() )
+    slot:SetOpacity( 0 )
     slot:SetShortcut(Turbine.UI.Lotro.Shortcut( Alias,"/fll ;loc" ))
     slot:SetAllowDrop( false )
 
