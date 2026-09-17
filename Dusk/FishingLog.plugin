@@ -3,11 +3,11 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down / adaptation FR Dusk-92</Author>
-	<Version>1.3-FR7.15</Version>
+	<Version>1.3-FR7.16</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.15 : compteurs corrompus mis en quarantaine, prouesses locale-safe et routage /fl catch strict.</Description>
+	<Description>FR7.16 : préflight des sauvegardes critiques avant l’UI, échelle sécurisée et quarantaine des lieux persistée immédiatement.</Description>
 	<website>https://github.com/Dusk-92/FishingLog</website>
   </Information>
-  <Package>Dusk.FishingLog.FL_Loader</Package>
+  <Package>Dusk.FishingLog.FL_Preflight</Package>
   <Configuration Apartment="Dusk"/>
 </Plugin>
