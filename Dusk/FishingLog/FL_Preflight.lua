@@ -100,15 +100,17 @@ local function FL717_SanitizeTotals(scope,value)
     for id,n in pairs(value) do
         if type(id)=="string" and #id==5 then
             local count = FL_ToNumber(n)
-            if count~=nil then
+            if count and count>0 then
                 if n~=count then changed=true end
                 value[id] = count
             else
-                quarantine[id] = n
                 table.insert(removeIds,id)
                 changed = true
-                FL717_BadTotalsCount = FL717_BadTotalsCount+1
-                badThisLoad = badThisLoad+1
+                if count==nil or count<0 then
+                    quarantine[id] = n
+                    FL717_BadTotalsCount = FL717_BadTotalsCount+1
+                    badThisLoad = badThisLoad+1
+                end
             end
         end
     end
@@ -149,14 +151,16 @@ local function FL717_SanitizeLocs(scope,value)
             for id,n in pairs(t) do
                 if type(id)=="string" and #id==5 then
                     local count = FL_ToNumber(n)
-                    if count~=nil then
+                    if count and count>0 then
                         if n~=count then changed=true end
                         t[id]=count
                     else
                         table.insert(removeIds,id)
-                        table.insert(badCounters,{location=tostring(loc),id=id,data=n})
-                        FL717_BadLocCounterCount=FL717_BadLocCounterCount+1
                         changed=true
+                        if count==nil or count<0 then
+                            table.insert(badCounters,{location=tostring(loc),id=id,data=n})
+                            FL717_BadLocCounterCount=FL717_BadLocCounterCount+1
+                        end
                     end
                 end
             end
