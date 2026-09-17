@@ -3,12 +3,11 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down</Author>
-	<Version>1.3-FR7.5</Version>
+	<Version>1.3-FR7.6</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.5 : sauvegarde dédiée de l’icône, guide régional et prouesses de pêche ; scan FR automatique désactivé au démarrage.</Description>
+	<Description>FR7.6 : bouton Définir lieu entièrement cliquable sans affichage de l’alias ; correctifs FR7.5 conservés.</Description>
 	<website>http://www.lotrointerface.com/downloads/info1238</website>
   </Information>
   <Package>Dusk.FishingLog.FL_Main</Package>
   <Configuration Apartment="Dusk"/>
 </Plugin>
-
