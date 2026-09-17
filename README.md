@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR7.16**.
+Version actuelle : **1.3-FR7.17**.
 
 ## Installation
 
@@ -26,7 +26,8 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - FR7.13 : conversion des coordonnées compatible point/virgule, clés internes de lieux masquées dans le chat et sauvegarde immédiate de la canne, de l’arme et du second emplacement ;
 - FR7.14 : conversion numérique `FL_ToNumber` intégrée au cœur et au loader, normalisation des anciennes sauvegardes numériques, traitement `/loc` sécurisé sans monkeypatch global et suppression de la couche `FL_Loader713` ;
 - FR7.15 : compteurs numériques corrompus mis en quarantaine et neutralisés, comptage des prouesses entièrement compatible `FL_ToNumber`, et routage de `/fl catch` limité à la commande `fl` ;
-- FR7.16 : préflight avant chargement de l’UI pour sécuriser `FL_Totals` et `FL_Options.scale`, retrait immédiat des lieux structurellement invalides sur disque, puis restauration du loader PluginData normal.
+- FR7.16 : préflight avant chargement de l’UI pour sécuriser `FL_Totals` et `FL_Options.scale`, retrait immédiat des lieux structurellement invalides sur disque, puis restauration du loader PluginData normal ;
+- FR7.17 : validation réelle des raccourcis d’équipement dans un Quickslot avant l’UI, sanitation du mode callback de `PluginData.Load`, et suppression des compteurs nuls hérités des anciennes réparations.
 
 ## Commandes utiles
 
