@@ -2,10 +2,10 @@
 <PluginConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Id>1238</Id>
   <Name>FishingLog</Name>
-  <Version>1.3-FR7.10</Version>
-  <Author>David Down</Author>
-  <InfoUrl>http://www.lotrointerface.com/downloads/info1238</InfoUrl>
-  <DownloadUrl>http://www.lotrointerface.com/downloads/download1238</DownloadUrl>
+  <Version>1.3-FR7.11</Version>
+  <Author>David Down / adaptation FR Dusk-92</Author>
+  <InfoUrl>https://github.com/Dusk-92/FishingLog</InfoUrl>
+  <DownloadUrl>https://github.com/Dusk-92/FishingLog/archive/refs/heads/main.zip</DownloadUrl>
   <Descriptors>
     <descriptor>Dusk\FishingLog.plugin</descriptor>
   </Descriptors>
