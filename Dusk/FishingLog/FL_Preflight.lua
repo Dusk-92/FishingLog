@@ -84,6 +84,7 @@ local function FL718_LoadPending(scope)
     if pending==nil then return {} end
     if type(pending)=="table" then return pending end
     FL_AppendQuarantine(scope,"FL_PendingShortcuts_Quarantine",pending)
+    FL718_Save(scope,"FL_PendingShortcuts",{})
     return {}
 end
 
@@ -122,22 +123,42 @@ local function FL718_SanitizeTotals(scope,value)
     local pendingChanged = false
     for _,field in ipairs({"rod","wpn","shl"}) do
         local saved = value[field]
-        if saved==false and pending[field]~=nil then
-            if FL718_IsShortcutUsable(pending[field]) then
-                value[field]=pending[field]
+        local waiting = pending[field]
+        if saved==false then
+            if waiting==nil then
+                value[field]=nil
+                changed=true
+            elseif type(waiting)~="string" or waiting=="" then
+                FL_AppendQuarantine(scope,"FL_PendingShortcuts_Quarantine",{field=field,data=waiting})
+                pending[field]=nil
+                value[field]=nil
+                pendingChanged=true
+                changed=true
+            elseif FL718_IsShortcutUsable(waiting) then
+                value[field]=waiting
                 pending[field]=nil
                 changed=true
                 pendingChanged=true
                 FL718_RestoredShortcutCount=FL718_RestoredShortcutCount+1
             end
-        elseif saved==nil and pending[field]~=nil then
+        elseif saved==nil and waiting~=nil then
             -- A pending placeholder is saved as false. nil therefore means the
             -- player deliberately cleared/replaced the slot during the last run.
             pending[field]=nil
             pendingChanged=true
-        elseif saved~=nil and saved~=false then
-            if FL718_IsShortcutUsable(saved) then
-                if pending[field]~=nil then
+        elseif saved~=nil then
+            if type(saved)~="string" or saved=="" then
+                quarantine[field]=saved
+                value[field]=nil
+                changed=true
+                FL718_BadTotalsCount=FL718_BadTotalsCount+1
+                badThisLoad=badThisLoad+1
+                if waiting~=nil then
+                    pending[field]=nil
+                    pendingChanged=true
+                end
+            elseif FL718_IsShortcutUsable(saved) then
+                if waiting~=nil then
                     pending[field]=nil
                     pendingChanged=true
                 end
