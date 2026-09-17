@@ -1,0 +1,158 @@
+name: "FR8.4 one-shot patch"
+
+on:
+  push:
+    branches:
+      - "feat/fr8-4-fishing-level"
+    paths:
+      - ".github/workflows/fr8-4-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "feat/fr8-4-fishing-level"
+
+      - name: Apply FR8.4 patch
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit("Expected text not found in " + path + ": " + repr(old))
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace(
+              "Dusk/FishingLog/FL_Window.lua",
+              '    area="Area: none", regionfish="Area Fish", deeds="Fishing Deeds"',
+              '    area="Area: none", level="Fishing level: ", regionfish="Area Fish", deeds="Fishing Deeds"'
+          )
+          replace(
+              "Dusk/FishingLog/FL_Window.lua",
+              '        area="Zone : aucune", regionfish="Poissons région", deeds="Prouesses"',
+              '        area="Zone : aucune", level="Niveau de pêche : ", regionfish="Poissons région", deeds="Prouesses"'
+          )
+          replace(
+              "Dusk/FishingLog/FL_Window.lua",
+              '''    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=205}, {x=280,y=20} )
+    self.areaLabel:SetForeColor( whiteColor )
+    self.areaLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
+
+    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=235}, {x=125,y=20} )''',
+              '''    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=198}, {x=280,y=18} )
+    self.areaLabel:SetForeColor( whiteColor )
+    self.areaLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
+
+    self.fishingLevelLabel = self:AddField(Label, "", {x=30,y=218}, {x=280,y=18} )
+    self.fishingLevelLabel:SetForeColor( whiteColor )
+    self.fishingLevelLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
+    self:SetFishingLevel(Totals and Totals.fp or nil)
+
+    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=245}, {x=125,y=20} )'''
+          )
+          replace(
+              "Dusk/FishingLog/FL_Window.lua",
+              '    self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=235}, {x=135,y=20} )',
+              '    self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=245}, {x=135,y=20} )'
+          )
+          replace(
+              "Dusk/FishingLog/FL_Window.lua",
+              '''function FL_Window:SetCurrentLocation(area,coords)
+    if not self.areaLabel then return end
+    area = tostring(area or "")
+    coords = tostring(coords or "")
+    local prefix = FL_Lang=="FR" and "Zone : " or "Area: "
+    local text = prefix..area
+    if coords~="" then text = text.." — "..coords end
+    self.areaLabel:SetText(text)
+end
+
+FL_window = FL_Window()''',
+              '''function FL_Window:SetCurrentLocation(area,coords)
+    if not self.areaLabel then return end
+    area = tostring(area or "")
+    coords = tostring(coords or "")
+    local prefix = FL_Lang=="FR" and "Zone : " or "Area: "
+    local text = prefix..area
+    if coords~="" then text = text.." — "..coords end
+    self.areaLabel:SetText(text)
+end
+
+function FL_Window:SetFishingLevel(level)
+    if not self.fishingLevelLabel then return end
+    local fp = FL_ToNonNegativeInteger(level)
+    self.fishingLevelLabel:SetText(UI.level..(fp~=nil and tostring(fp) or "—"))
+end
+
+FL_window = FL_Window()'''
+          )
+
+          replace(
+              "Dusk/FishingLog/FL_Main.lua",
+              '\tif fp then Totals.fp = fp; Profs[pname] = fp return end',
+              '''\tif fp then
+\t\tfp = FL_ToNonNegativeInteger(fp) or fp
+\t\tTotals.fp = fp
+\t\tProfs[pname] = fp
+\t\tif FL_window and FL_window.SetFishingLevel then FL_window:SetFishingLevel(fp) end
+\t\treturn
+\tend'''
+          )
+
+          replace(
+              "Dusk/FishingLog.plugin",
+              '<Version>1.3-FR8.3</Version>',
+              '<Version>1.3-FR8.4</Version>'
+          )
+          replace(
+              "Dusk/FishingLog.plugin",
+              '<Description>FR8.3 : les cannes valides ne sont plus rejetées par une catégorie LOTRO numérique obsolète.</Description>',
+              '<Description>FR8.4 : niveau de pêche affiché dans la fenêtre et mis à jour en temps réel.</Description>'
+          )
+
+          replace(
+              "README.md",
+              'Version actuelle : **1.3-FR8.3**.',
+              'Version actuelle : **1.3-FR8.4**.'
+          )
+          replace(
+              "README.md",
+              '- **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active.',
+              '- **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active ;\n- **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.'
+          )
+          replace(
+              "README.md",
+              'La FR8.3 n’ajoute donc pas de filtre spéculatif',
+              'La FR8.4 n’ajoute donc pas de filtre spéculatif'
+          )
+
+          Path("Dusk/FishingLog/README_FR8_4.txt").write_text(
+              "FishingLog 1.3-FR8.4 — niveau de pêche dans la fenêtre\n\n"
+              "Interface\n"
+              "- Ajout de « Niveau de pêche : X » sous la zone actuelle.\n"
+              "- La valeur est initialisée depuis `Totals.fp`.\n"
+              "- Si aucune maîtrise n’a encore été enregistrée, l’interface affiche « Niveau de pêche : — ».\n"
+              "- Lorsqu’un message de progression de pêche est reçu, la valeur est mise à jour immédiatement sans rouvrir la fenêtre.\n"
+              "- Les boutons « Poissons région » et « Prouesses » sont légèrement descendus, sans agrandir la fenêtre.\n\n"
+              "Portée\n"
+              "- Aucun changement du comptage des prises, des lieux, des Quickslots ou de l’icône.\n",
+              encoding="utf-8"
+          )
+
+          Path(".github/workflows/fr8-4-patch.yml").unlink()
+          PY
+
+          git config user.name "Dusk-92"
+          git config user.email "romain.thomas92@proton.me"
+          git add -A
+          git commit -m "FishingLog FR8.4 — show fishing level in window"
+          git push origin HEAD:feat/fr8-4-fishing-level
