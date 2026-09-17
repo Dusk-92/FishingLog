@@ -5,6 +5,7 @@ import "Turbine.Gameplay"
 import "Turbine.UI.Lotro"
 import "Dusk.Common.EII_ID"
 import "Dusk.FishingLog.FL_Data"
+import "Dusk.FishingLog.FL_Number"
 
 -- Detect localized clients. Item IDs are language-independent, so the same
 -- fishing database can be used on French/English clients.
@@ -49,6 +50,10 @@ FL_TrackHover = false
 -- You have acquired: [Minnow].
 -- Your proficiency in Fishing has increased to 9.
 
+local function FL_DisplayLocKey(key)
+    key=tostring(key or "")
+    return key:match("^%d+;(.+)$") or key
+end
 
 FL_Options = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_Options")
 if not FL_Options then FL_Options = {} end
@@ -155,7 +160,9 @@ import "Dusk.FishingLog.FL_Icon"
 FL_AutoLocalize(false)
 
 local function pos(n0,ls,os)
-	return (tostring(ls) +math.fmod(tostring(os),20)/20 -n0)/10
+    local ln,on = FL_ToNumber(ls),FL_ToNumber(os)
+    if not ln or not on then return nil end
+	return (ln + math.fmod(on,20)/20 - n0)/10
 end
 
 -- Save player name for later use
@@ -225,15 +232,15 @@ Turbine.Chat.Received = function (sender,args)
 	local ew,ns = pos(x0,lx,ox), pos(y0,ly,oy)
 	-- Keep raw /loc coordinates separate from FishingLog's selected fishing spot.
 	-- The previous code overwrote locStr here, which could desynchronise /fll last.
-	FL_LastRawCoords = string.format("%.1f,%.1f",ns,ew)
+    if ew and ns then FL_LastRawCoords = string.format("%.1f,%.1f",ns,ew) end
 end
 
 local function distance(dy,dx) return math.sqrt(dy*dy+dx*dx) end
 
 local function locV(str,neg)
-    local clean = str:gsub("%s",""):gsub(",",".")
+    local clean = str:gsub("%s","")
     local dir = clean:sub(-1)
-    local nbr = tonumber(clean:sub(1,-2))
+    local nbr = FL_ToNumber(clean:sub(1,-2))
     if not nbr then return nil end
     if dir==neg or (neg=="W" and dir=="O") then nbr = -nbr end
     return nbr
@@ -284,10 +291,10 @@ local function FL_PrintRegionGuide()
         return
     end
     print((FL_Lang=="FR" and "Groupe : " or "Group: ")..(FL_Lang=="FR" and g.titleFR or g.titleEN))
-    local fp = tonumber(Totals.fp)
+    local fp = FL_ToNumber(Totals.fp)
     local caught = 0
     for _,f in ipairs(g.fish) do
-        local n = tonumber(Totals[f.id] or 0)
+        local n = FL_ToNumber(Totals[f.id] or 0) or 0
         if n>0 then caught=caught+1 end
         local status = n>0 and "[OK] " or "[  ] "
         local req = ""
@@ -311,7 +318,7 @@ local function FL_PrintDeedSummary()
         local extra = d.key=="lake" and (FL_Lang=="FR" and " + visite Ville du Lac" or " + visit Lake-town") or ""
         print(d.fr.." : "..n.."/"..#d.ids..extra)
     end
-    local fp = tonumber(Totals.fp)
+    local fp = FL_ToNumber(Totals.fp)
     if fp then
         print((FL_Lang=="FR" and "Maîtrise enregistrée : " or "Recorded proficiency: ")..fp.."/200")
         local nextTitle=nil
@@ -328,7 +335,7 @@ local function FL_PrintDeedDetails(key)
     if not d then printe(FL_Lang=="FR" and "Prouesse inconnue. Utilise dard, esturgeon, truite, lac ou saumon." or "Unknown deed. Use darter, sturgeon, trout, lake or salmon.") return end
     printh(d.fr)
     for _,id in ipairs(d.ids) do
-        local n = tonumber(Totals[id] or 0)
+        local n = FL_ToNumber(Totals[id] or 0) or 0
         local label = FL_Guide.GetFishLabel(id) or (ID[id] and (ID[id].ln or ID[id].n)) or id
         print((n>0 and "[OK] " or "[  ] ")..FL_ItemLink(id,label)..(n>0 and ((FL_Lang=="FR" and " — pris x" or " — caught x")..n) or ""))
     end
@@ -351,20 +358,20 @@ function FL_Command:Execute( cmd,args )
 		if args=="list" then
 			printh(FL_Lang=="FR" and "Lieux de pêche enregistrés :" or "Recorded fishing locations:")
 			for loc,t in pairs(Locs) do
-				print(RegN[t.r]..'('..t.a..'): '..loc..' = '..t.n)
+				print(RegN[t.r]..'('..t.a..'): '..FL_DisplayLocKey(loc)..' = '..t.n)
 			end
 			return
 		end
 		if args=="last" then
 			if locStr and locTbl then
-				printh((FL_Lang=="FR" and "Prises à " or "Fish caught at ")..locStr)
+				printh((FL_Lang=="FR" and "Prises à " or "Fish caught at ")..FL_DisplayLocKey(locStr))
 				print_list(locTbl)
 			else printe(FL_Lang=="FR" and "Aucun lieu sélectionné." or "No location selected yet") end
 			return
 		end
 		local tbl = Locs[args]
 		if tbl then
-			printh((FL_Lang=="FR" and "Prises à " or "Fish caught at ")..args)
+			printh((FL_Lang=="FR" and "Prises à " or "Fish caught at ")..FL_DisplayLocKey(args))
 			print_list(tbl)
 			return
 		end
@@ -372,12 +379,13 @@ function FL_Command:Execute( cmd,args )
 		if y then
 			local r = Region[reg]
 			if not r then printe((FL_Lang=="FR" and "Région inconnue : " or "Unknown region: ")..reg) return end
-			local y1,x1,ln = locV(y,'S'), locV(x,'W')
-			local loc = r..';'..y1..','..x1
+			local y1,x1 = locV(y,'S'), locV(x,'W')
+            if not y1 or not x1 then printe(FL_Lang=="FR" and "Coordonnées invalides." or "Invalid coordinates.") return end
 			locStr = nil
 			for loc,t in pairs(Locs) do
 				if t.r==r then
-					if distance(y1-t.y,x1-t.x)<1 then locStr = loc break end
+                    local ty,tx=FL_ToNumber(t.y),FL_ToNumber(t.x)
+					if ty and tx and distance(y1-ty,x1-tx)<1 then locStr = loc break end
 				end
 			end
 			local isNew = false
@@ -392,9 +400,9 @@ function FL_Command:Execute( cmd,args )
 			FL_CurrentArea = a
 			FL_CurrentRegionName = reg
 			FL_CurrentLocationText = locStr
-			if FL_window and FL_window.SetCurrentLocation then FL_window:SetCurrentLocation(a,locStr) end
+			if FL_window and FL_window.SetCurrentLocation then FL_window:SetCurrentLocation(a,FL_DisplayLocKey(locStr)) end
 			local prefix = isNew and (FL_Lang=="FR" and "Nouveau lieu : " or "New location: ") or (FL_Lang=="FR" and "Lieu actif : " or "Active location: ")
-			print(prefix..a.." — "..locStr)
+			print(prefix..a.." — "..FL_DisplayLocKey(locStr))
 			FL_NoLocationWarned = false
 		else printe(FL_Lang=="FR" and "Lieu invalide." or "Invalid location.") end
 		return
@@ -430,7 +438,8 @@ function FL_Command:Execute( cmd,args )
     if args=="" then
 		local fp = Totals.fp
 		if fp then 
-			local s,fp = '', tonumber(fp)
+			local s,fp = '', FL_ToNumber(fp)
+            if not fp then print(FL_Lang=="FR" and "Maîtrise de pêche invalide." or "Invalid fishing proficiency.") return end
 			if fp>9 then
 				local p = math.floor(fp/50)+1
 				if p<5 then s = FL_Lang=="FR" and (", Pêcheur "..Prof[p]) or (", "..Prof[p].." Angler")
