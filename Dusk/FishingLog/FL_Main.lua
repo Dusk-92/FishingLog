@@ -19,9 +19,14 @@ end
 
 import "Dusk.FishingLog.FL_Guide"
 
-function print(text) Turbine.Shell.WriteLine("<rgb=#00FFFF>FL:</rgb> "..tostring(text)) end
-function printh(text) print("<rgb=#00FF00>"..text.."</rgb>") end
-function printe(text) print("<rgb=#FF6040>"..(FL_Lang=="FR" and "Erreur : " or "Error: ")..text.."</rgb>") end
+-- Prefix the public output helpers so FishingLog can safely share the Dusk
+-- apartment with BirdingLog and other Dusk plugins. Keep short aliases local
+-- to this file so the legacy code below does not leak generic globals.
+function FL_Print(text) Turbine.Shell.WriteLine("<rgb=#00FFFF>FL:</rgb> "..tostring(text)) end
+function FL_PrintH(text) FL_Print("<rgb=#00FF00>"..text.."</rgb>") end
+function FL_PrintE(text) FL_Print("<rgb=#FF6040>"..(FL_Lang=="FR" and "Erreur : " or "Error: ")..text.."</rgb>") end
+local print,printh,printe = FL_Print,FL_PrintH,FL_PrintE
+local help
 
 import "Dusk.Common.Help"
 
@@ -149,13 +154,13 @@ import "Dusk.FishingLog.FL_Icon"
 -- First-run FR database enrichment. Use /fl fr to run it again manually.
 FL_AutoLocalize(false)
 
-function pos(n0,ls,os)
+local function pos(n0,ls,os)
 	return (tostring(ls) +math.fmod(tostring(os),20)/20 -n0)/10
 end
 
 -- Save player name for later use
-player = Turbine.Gameplay.LocalPlayer.GetInstance()
-pname = player:GetName()
+local player = Turbine.Gameplay.LocalPlayer.GetInstance()
+local pname = player:GetName()
 
 local Chat = Turbine.Chat.Received
 Turbine.Chat.Received = function (sender,args)
@@ -554,7 +559,7 @@ end
 -- Options panel
 import "Dusk.Common.Options"
 if not FL_Options.scale then FL_Options.scale = 1 end
-OP = Dusk.Common.Options_Init(print,FL_Options,FL_window,"FL_Options")
+local OP = Dusk.Common.Options_Init(print,FL_Options,FL_window,"FL_Options")
 
 -- Help text
 help = {
