@@ -3,9 +3,9 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down</Author>
-	<Version>1.3-FR7.7</Version>
+	<Version>1.3-FR7.8</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.7 : correction du bouton Définir lieu sans parentage Quickslot ; correctifs FR7.5 conservés.</Description>
+	<Description>FR7.8 : bouton Définir lieu cliquable sur toute la barre, masque du débordement de l’alias ; correctifs précédents conservés.</Description>
 	<website>http://www.lotrointerface.com/downloads/info1238</website>
   </Information>
   <Package>Dusk.FishingLog.FL_Main</Package>
