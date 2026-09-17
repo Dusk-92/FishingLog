@@ -143,21 +143,29 @@ function FL_Window:Constructor()
 		Totals.shl = FL_Shortcut(sender,FL_Lang=="FR" and "2e emplacement" or "2nd")
 	end
 
-	-- Keep the Alias Quickslot and the visual LOTRO button as siblings.
-	-- The slot is inset so its own Alias rendering cannot leak around the skin.
+
+	-- Location button: keep the proven working LOTRO Quickslot Alias overlay.
+	-- The Quickslot covers the whole button and receives the real player click.
+	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=140}, {x=125,y=20} )
+
 	local slot = Turbine.UI.Lotro.Quickslot()
-	slot:SetParent( self )
-    slot:SetPosition( 32,142 )
-    slot:SetSize( 121,16 )
+	slot:SetParent( self.locButton )
+    slot:SetPosition( 0,0 )
+    slot:SetSize( self.locButton:GetWidth(), self.locButton:GetHeight() )
     slot:SetOpacity( 0 )
-    slot:SetZOrder( 1 )
     slot:SetShortcut(Turbine.UI.Lotro.Shortcut( Alias,"/fll ;loc" ))
     slot:SetAllowDrop( false )
+    slot:SetUseOnRightClick( false )
 
-	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=140}, {x=125,y=20} )
-    self.locButton:SetMouseVisible( false )
-    self.locButton:SetZOrder( 2 )
-
+    -- LOTRO can still draw a few Alias pixels outside an otherwise transparent
+    -- Quickslot. Hide only that bleed in the empty gap below the button.
+    local aliasBleedMask = Turbine.UI.Control()
+    aliasBleedMask:SetParent( self )
+    aliasBleedMask:SetPosition( 28,160 )
+    aliasBleedMask:SetSize( 130,8 )
+    aliasBleedMask:SetBackColor( backColor )
+    aliasBleedMask:SetMouseVisible( false )
+    aliasBleedMask:SetZOrder( 100 )
 	-- Create a Inventory listing button
 	self.listButton = self:AddField(Button, UI.listloc, {x=175,y=140}, {x=135,y=20} )
 	self.listButton.Click = function( sender,args )
