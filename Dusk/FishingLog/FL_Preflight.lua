@@ -20,7 +20,7 @@ end
 
 -- Keep every recovery snapshot. Older FR7.17 quarantine files are preserved as
 -- a legacy entry the first time they are converted to the cumulative format.
-function FL_AppendQuarantine(scope,key,payload)
+function FL_AppendQuarantine(scope,key,payload,callback)
     local previous = FL718_RawLoad(scope,key)
     local history
     if type(previous)=="table" and previous.__format=="FR7.18-history" and type(previous.entries)=="table" then
@@ -32,7 +32,7 @@ function FL_AppendQuarantine(scope,key,payload)
         end
     end
     table.insert(history.entries,{version="FR7.18",data=payload})
-    FL718_Save(scope,key,history)
+    return FL718_RawSave(scope,key,history,callback)
 end
 
 local function FL718_SanitizeOptions(scope,value)
@@ -122,7 +122,20 @@ local function FL718_SanitizeTotals(scope,value)
     local pendingChanged = false
     for _,field in ipairs({"rod","wpn","shl"}) do
         local saved = value[field]
-        if saved~=nil then
+        if saved==false and pending[field]~=nil then
+            if FL718_IsShortcutUsable(pending[field]) then
+                value[field]=pending[field]
+                pending[field]=nil
+                changed=true
+                pendingChanged=true
+                FL718_RestoredShortcutCount=FL718_RestoredShortcutCount+1
+            end
+        elseif saved==nil and pending[field]~=nil then
+            -- A pending placeholder is saved as false. nil therefore means the
+            -- player deliberately cleared/replaced the slot during the last run.
+            pending[field]=nil
+            pendingChanged=true
+        elseif saved~=nil and saved~=false then
             if FL718_IsShortcutUsable(saved) then
                 if pending[field]~=nil then
                     pending[field]=nil
@@ -132,17 +145,11 @@ local function FL718_SanitizeTotals(scope,value)
                 pending[field]=saved
                 pendingChanged=true
                 quarantine[field]=saved
-                value[field]=nil
+                value[field]=false
                 changed=true
                 FL718_BadTotalsCount=FL718_BadTotalsCount+1
                 badThisLoad=badThisLoad+1
             end
-        elseif pending[field]~=nil and FL718_IsShortcutUsable(pending[field]) then
-            value[field]=pending[field]
-            pending[field]=nil
-            changed=true
-            pendingChanged=true
-            FL718_RestoredShortcutCount=FL718_RestoredShortcutCount+1
         end
     end
     if pendingChanged then FL718_Save(scope,"FL_PendingShortcuts",pending) end
@@ -242,6 +249,22 @@ local function FL718_SanitizeLoaded(scope,key,value)
     return value
 end
 
+local FL718_QuarantineKeys = {
+    FL_Locs_Quarantine=true,
+    FL_LocsCounter_Quarantine=true,
+    FL_TotalsCounter_Quarantine=true,
+    FL_Profs_Quarantine=true
+}
+
+-- FL_Loader still contains older fallback quarantine writes. While it imports,
+-- make those writes cumulative too. Normal saves pass through untouched.
+Turbine.PluginData.Save = function(scope,key,value,callback)
+    if FL718_QuarantineKeys[key] then
+        return FL_AppendQuarantine(scope,key,value,callback)
+    end
+    return FL718_RawSave(scope,key,value,callback)
+end
+
 Turbine.PluginData.Load = function(scope,key,callback)
     local wrappedCallback
     if callback then
@@ -259,6 +282,7 @@ local FL718_OK,FL718_Error=pcall(function()
     import "Dusk.FishingLog.FL_Loader"
 end)
 Turbine.PluginData.Load=FL718_RawLoad
+Turbine.PluginData.Save=FL718_RawSave
 if not FL718_OK then error(FL718_Error) end
 
 if FL718_BadTotalsCount>0 and FL_PrintE then
