@@ -184,7 +184,13 @@ Turbine.Chat.Received = function (sender,args)
 			fp = msg:match("(%d+)")
 		end
 	end
-	if fp then Totals.fp = fp; Profs[pname] = fp return end
+	if fp then
+		fp = FL_ToNonNegativeInteger(fp) or fp
+		Totals.fp = fp
+		Profs[pname] = fp
+		if FL_window and FL_window.SetFishingLevel then FL_window:SetFishingLevel(fp) end
+		return
+	end
 
 	if args.ChatType==Turbine.ChatType.SelfLoot then
 		-- Do not depend on localized loot prefixes ("You have acquired", etc.).

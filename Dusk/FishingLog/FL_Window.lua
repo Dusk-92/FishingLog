@@ -27,13 +27,13 @@ local Blank
 local UI = {
     title="Fishing Log", rod="Fishing rod:", fish="Fish:", weapon="Weapon:", second="2nd:",
     setloc="Set Location", listloc="List Locations", loccatch="Loc. Catches", personal="Personal Catches",
-    area="Area: none", regionfish="Area Fish", deeds="Fishing Deeds"
+    area="Area: none", level="Fishing level: ", regionfish="Area Fish", deeds="Fishing Deeds"
 }
 if FL_Lang=="FR" then
     UI = {
         title="Carnet de pêche", rod="Canne à pêche :", fish="Pêcher :", weapon="Arme :", second="2e :",
         setloc="Définir lieu", listloc="Liste des lieux", loccatch="Prises du lieu", personal="Mes prises",
-        area="Zone : aucune", regionfish="Poissons région", deeds="Prouesses"
+        area="Zone : aucune", level="Niveau de pêche : ", regionfish="Poissons région", deeds="Prouesses"
     }
 end
 
@@ -189,16 +189,21 @@ function FL_Window:Constructor()
 
     -- Fishing is not organised exactly like birding: keep spot tracking, but
     -- expose the current game area and reliable deed-fish information.
-    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=205}, {x=280,y=20} )
+    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=198}, {x=280,y=18} )
     self.areaLabel:SetForeColor( whiteColor )
     self.areaLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
 
-    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=235}, {x=125,y=20} )
+    self.fishingLevelLabel = self:AddField(Label, "", {x=30,y=218}, {x=280,y=18} )
+    self.fishingLevelLabel:SetForeColor( whiteColor )
+    self.fishingLevelLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
+    self:SetFishingLevel(Totals and Totals.fp or nil)
+
+    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=245}, {x=125,y=20} )
     self.regionFishButton.Click = function( sender,args )
         FL_Command:Execute("fl","zone")
     end
 
-    self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=235}, {x=135,y=20} )
+    self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=245}, {x=135,y=20} )
     self.deedsButton.Click = function( sender,args )
         FL_Command:Execute("fl","deeds")
     end
@@ -213,6 +218,12 @@ function FL_Window:SetCurrentLocation(area,coords)
     local text = prefix..area
     if coords~="" then text = text.." — "..coords end
     self.areaLabel:SetText(text)
+end
+
+function FL_Window:SetFishingLevel(level)
+    if not self.fishingLevelLabel then return end
+    local fp = FL_ToNonNegativeInteger(level)
+    self.fishingLevelLabel:SetText(UI.level..(fp~=nil and tostring(fp) or "—"))
 end
 
 FL_window = FL_Window()
