@@ -1,7 +1,7 @@
--- FishingLog FR8.0 release preflight.
--- One startup guard for saved data, item shortcuts and language-specific name
--- caches. It runs before FL_Main/FL_Window, then leaves only the narrow
--- language-aware FL_Names save mapping active for FishingLog's lifetime.
+-- FishingLog FR8.1 final release preflight.
+-- Validates saved state before FL_Main/FL_Window, keeps localized name caches
+-- separated, preserves Shift-bypassed rod shortcuts, and guards legacy runtime
+-- paths without adding another loader layer.
 
 import "Turbine.UI.Lotro"
 import "Dusk.Common"
@@ -22,6 +22,11 @@ local FL8_BadLocCounterCount = 0
 local FL8_RestoredShortcutCount = 0
 local FL8_ProbeWatcher = nil
 local FL8_Active = true
+local FL81_NamesReset = false
+local FL81_BypassRodRestore = nil
+local FL81_BypassPending = nil
+local FL81_ChatGuard = nil
+local FL81_PreFishingChat = nil
 
 local function FL8_Save(scope,key,value,callback)
     return FL8_RawSave(scope,key,value,callback)
@@ -48,11 +53,28 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
         end
     end
 
-    table.insert(history.entries,{version="FR8.0",data=payload})
+    table.insert(history.entries,{version="FR8.1",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
     return FL8_RawSave(scope,key,history,callback)
+end
+
+-- FR8.0 could migrate an old language-agnostic FL_Names cache into FR. Reset the
+-- FR dynamic cache once, preserve a backup, then let the client probe repopulate
+-- only the few names absent from the static French database.
+if FL8_Lang=="FR" then
+    local cacheVersion=FL8_RawLoad(Turbine.DataScope.Server,"FL_FRNamesCacheVersion")
+    if cacheVersion~=1 then
+        local oldCache=FL8_RawLoad(Turbine.DataScope.Server,"FL_Names_FR")
+        if FL8_HasEntries(oldCache) then
+            FL8_AppendQuarantine(
+                Turbine.DataScope.Server,"FL_NamesFR_Quarantine",oldCache)
+        end
+        FL8_RawSave(Turbine.DataScope.Server,"FL_Names_FR",{})
+        FL8_RawSave(Turbine.DataScope.Server,"FL_FRNamesCacheVersion",1)
+        FL81_NamesReset=true
+    end
 end
 
 local function FL8_ParseDisplayCoords(text)
@@ -102,6 +124,14 @@ local function FL8_SanitizeOptions(scope,value)
             value.pos1=nil
             changed=true
         end
+    end
+
+    if FL81_NamesReset then
+        if value.fr8ProbeVersion~=nil or value.frProbeVersion~=nil then
+            changed=true
+        end
+        value.fr8ProbeVersion=nil
+        value.frProbeVersion=nil
     end
 
     if changed then FL8_Save(scope,"FL_Options",value) end
@@ -183,9 +213,22 @@ local function FL8_SanitizeTotals(scope,value)
         end
     end
 
+    -- Shift is an intentional bypass in the original FishingLog UI. Persist only
+    -- a true marker; false/invalid legacy values collapse back to normal validation.
+    if value.rodBypass~=nil and value.rodBypass~=true then
+        if type(value.rodBypass)~="boolean" then
+            quarantine.rodBypass=value.rodBypass
+            FL8_BadTotalsCount=FL8_BadTotalsCount+1
+            badThisLoad=badThisLoad+1
+        end
+        value.rodBypass=nil
+        changed=true
+    end
+
     local pendingChanged=false
     for _,field in ipairs({"rod","wpn","shl"}) do
-        local expectedCategory=(field=="rod") and 104 or nil
+        local bypass=(field=="rod" and value.rodBypass==true)
+        local expectedCategory=(field=="rod" and not bypass) and 104 or nil
         local saved=value[field]
         local waiting=pending[field]
 
@@ -211,11 +254,17 @@ local function FL8_SanitizeTotals(scope,value)
                 local usable,unresolved,wrongCategory=
                     FL8_ValidateShortcut(waiting,expectedCategory)
                 if usable then
-                    value[field]=waiting
-                    pending[field]=nil
-                    changed=true
-                    pendingChanged=true
-                    FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
+                    if bypass then
+                        value[field]=false
+                        FL81_BypassRodRestore=waiting
+                        FL81_BypassPending=pending
+                    else
+                        value[field]=waiting
+                        pending[field]=nil
+                        changed=true
+                        pendingChanged=true
+                        FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
+                    end
                 elseif wrongCategory then
                     quarantine[field]=waiting
                     pending[field]=nil
@@ -225,12 +274,10 @@ local function FL8_SanitizeTotals(scope,value)
                     FL8_BadTotalsCount=FL8_BadTotalsCount+1
                     badThisLoad=badThisLoad+1
                 else
-                    -- Rejected/unresolved today: keep the safe placeholder and retry.
                     value[field]=false
                 end
             end
         elseif saved==nil and waiting~=nil then
-            -- With an existing FL_Totals table, nil means the player cleared the slot.
             pending[field]=nil
             pendingChanged=true
         elseif saved~=nil then
@@ -248,7 +295,14 @@ local function FL8_SanitizeTotals(scope,value)
                 local usable,unresolved,wrongCategory=
                     FL8_ValidateShortcut(saved,expectedCategory)
                 if usable then
-                    if waiting~=nil then
+                    if bypass then
+                        pending[field]=saved
+                        value[field]=false
+                        pendingChanged=true
+                        changed=true
+                        FL81_BypassRodRestore=saved
+                        FL81_BypassPending=pending
+                    elseif waiting~=nil then
                         pending[field]=nil
                         pendingChanged=true
                     end
@@ -270,6 +324,11 @@ local function FL8_SanitizeTotals(scope,value)
                 end
             end
         end
+    end
+
+    if value.rodBypass==true and value.rod==nil and pending.rod==nil then
+        value.rodBypass=nil
+        changed=true
     end
     if pendingChanged then FL8_Save(scope,"FL_PendingShortcuts",pending) end
 
@@ -393,17 +452,19 @@ local function FL8_SanitizeProfs(scope,value)
 
     local changed=false
     local bad={}
+    local remove={}
     for name,v in pairs(value) do
         local fp=FL_ToNonNegativeInteger(v)
-        if fp~=nil then
+        if type(name)=="string" and name~="" and fp~=nil then
             if v~=fp then changed=true end
             value[name]=fp
         else
-            bad[tostring(name)]=v
-            value[name]=nil
+            bad[type(name)..":"..tostring(name)]=v
+            table.insert(remove,name)
             changed=true
         end
     end
+    for _,name in ipairs(remove) do value[name]=nil end
     if next(bad) then FL8_AppendQuarantine(scope,"FL_ProfsPreload_Quarantine",bad) end
     if changed then FL8_Save(scope,"FL_Profs",value) end
     return value
@@ -424,7 +485,6 @@ local FL8_QuarantineKeys={
     FL_Profs_Quarantine=true
 }
 
--- Guard malformed ExamineItemInstance payloads without modifying Dusk.Common on disk.
 local FL8_RawEII=Dusk and Dusk.Common and Dusk.Common.EII_ID
 local FL8_SafeEII
 if type(FL8_RawEII)=="function" then
@@ -437,8 +497,6 @@ if type(FL8_RawEII)=="function" then
     Dusk.Common.EII_ID=FL8_SafeEII
 end
 
--- Temporary startup wrappers. Old FL_Loader quarantine writes are converted to
--- bounded cumulative history, and FL_Names is redirected to a language key.
 Turbine.PluginData.Save=function(scope,key,value,callback)
     if key=="FL_Names" then
         return FL8_RawSave(scope,FL8_NamesKey,value,callback)
@@ -459,17 +517,6 @@ Turbine.PluginData.Load=function(scope,key,callback)
     end
 
     local value=FL8_RawLoad(scope,actualKey,wrappedCallback)
-
-    -- Migrate only the historical French cache. Never import it into EN/DE,
-    -- because the old FL_Names key did not record which client language made it.
-    if key=="FL_Names" and value==nil and FL8_Lang=="FR" and not callback then
-        local legacy=FL8_RawLoad(scope,"FL_Names")
-        if type(legacy)=="table" then
-            value=legacy
-            FL8_RawSave(scope,FL8_NamesKey,legacy)
-        end
-    end
-
     if value==nil and callback then return nil end
     return FL8_SanitizeLoaded(scope,key,value)
 end
@@ -478,8 +525,6 @@ local FL8_OK,FL8_Error=pcall(function()
     import "Dusk.FishingLog.FL_Loader"
 end)
 
--- Loads no longer need interception after startup. Saves keep only the narrow
--- FL_Names language mapping so autosave/unload cannot cross-contaminate caches.
 Turbine.PluginData.Load=FL8_RawLoad
 local function FL8_RuntimeSave(scope,key,value,callback)
     if FL8_Active and key=="FL_Names" then
@@ -500,18 +545,83 @@ if not FL8_OK then
     error(FL8_Error)
 end
 
--- Persist any post-import cleanup (for example a resolved wrong-category rod)
--- before a crash can resurrect it.
+if FL81_BypassRodRestore and type(Totals)=="table" and Totals.rodBypass==true and
+   FL_window and FL_window.rod then
+    local handler=FL_window.rod.ShortcutChanged
+    FL_window.rod.ShortcutChanged=nil
+    local data=FL81_BypassRodRestore
+    local ok=pcall(function()
+        local shortcut=Turbine.UI.Lotro.Shortcut(
+            Turbine.UI.Lotro.ShortcutType.Item,data)
+        FL_window.rod:SetShortcut(shortcut)
+        local restored=FL_window.rod:GetShortcut()
+        if not restored or restored:GetType()~=Turbine.UI.Lotro.ShortcutType.Item or
+           restored:GetData()~=data then
+            error("bypassed rod restore failed")
+        end
+    end)
+    FL_window.rod.ShortcutChanged=handler
+    if ok then
+        Totals.rod=data
+        local pending=FL81_BypassPending or FL8_LoadPending(Turbine.DataScope.Character)
+        pending.rod=nil
+        FL8_RawSave(Turbine.DataScope.Character,"FL_PendingShortcuts",pending)
+        FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
+    end
+end
+
+if FL_window and FL_window.rod and type(FL_window.rod.ShortcutChanged)=="function" then
+    local previousRodChanged=FL_window.rod.ShortcutChanged
+    FL_window.rod.ShortcutChanged=function(sender,args)
+        local bypass=sender:IsShiftKeyDown()
+        local result=previousRodChanged(sender,args)
+        if type(Totals)=="table" then
+            if Totals.rod then
+                Totals.rodBypass=bypass and true or nil
+            else
+                Totals.rodBypass=nil
+            end
+            FL8_RawSave(Turbine.DataScope.Character,"FL_Totals",Totals)
+        end
+        return result
+    end
+end
+
+if FL_Lang~="FR" and FL_Guide and FL_Guide.Groups and ID then
+    for _,group in pairs(FL_Guide.Groups) do
+        for _,fish in ipairs(group.fish or {}) do
+            local data=ID[fish.id]
+            fish.nameFR=(data and (data.ln or data.n)) or fish.id
+        end
+    end
+end
+
+FL81_PreFishingChat=FL_PreviousChatHandler
+local FL81_FishingChat=Turbine.Chat.Received
+FL81_ChatGuard=function(sender,args)
+    if not FL8_Active then
+        if FL81_PreFishingChat then return FL81_PreFishingChat(sender,args) end
+        return
+    end
+    if args and args.ChatType~=Turbine.ChatType.Advancement and
+       type(args.Message)=="string" and
+       args.Message:match("Your proficiency in Fishing has increased to %d+.") then
+        if FL81_PreFishingChat then return FL81_PreFishingChat(sender,args) end
+        return
+    end
+    if FL81_FishingChat then return FL81_FishingChat(sender,args) end
+end
+Turbine.Chat.Received=FL81_ChatGuard
+
 if type(Totals)=="table" then
     FL8_RawSave(Turbine.DataScope.Character,"FL_Totals",Totals)
 end
 
--- One automatic FR retry for names absent from the static FR database. The marker
--- is committed only after the asynchronous probe reports completion.
-if FL8_Lang=="FR" and FL_Options and FL_Options.fr8ProbeVersion~=1 and
+if FL8_Lang=="FR" and FL_Options and
+   (FL81_NamesReset or FL_Options.fr8ProbeVersion~=1) and
    type(FL_AutoLocalize)=="function" then
     FL_Options.frProbeVersion=nil
-    local ok=pcall(FL_AutoLocalize,false)
+    local ok=pcall(FL_AutoLocalize,FL81_NamesReset and true or false)
     if ok then
         local frames=0
         FL8_ProbeWatcher=Turbine.UI.Control()
@@ -531,7 +641,6 @@ if FL8_Lang=="FR" and FL_Options and FL_Options.fr8ProbeVersion~=1 and
     end
 end
 
--- Restore shared runtime functions when FishingLog unloads.
 local FL8_OldUnload=Plugins.FishingLog.Unload
 Plugins.FishingLog.Unload=function(sender,args)
     if FL8_ProbeWatcher then
@@ -542,6 +651,9 @@ Plugins.FishingLog.Unload=function(sender,args)
     local ok,result=pcall(FL8_OldUnload,sender,args)
     FL8_Active=false
 
+    if Turbine.Chat.Received==FL81_ChatGuard then
+        Turbine.Chat.Received=FL81_PreFishingChat
+    end
     if Turbine.PluginData.Save==FL8_RuntimeSave then
         Turbine.PluginData.Save=FL8_RawSave
     end
