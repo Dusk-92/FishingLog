@@ -1,4 +1,4 @@
--- FishingLog FR7.14 runtime hardening layer.
+-- FishingLog FR7.15 runtime hardening layer.
 -- Handles reload safety, old-save edge cases, locale-safe numeric parsing,
 -- location-key collisions, deterministic spot selection and crash-loss risk.
 
@@ -85,6 +85,8 @@ end
 -- cannot crash list/search operations. Unusable records are quarantined.
 local FL711_BadLocs = {}
 local FL711_BadLocCount = 0
+local FL715_BadLocCounters = {}
+local FL715_BadLocCounterCount = 0
 if type(Locs)~="table" then Locs={} end
 for loc,t in pairs(Locs) do
     local valid = type(loc)=="string" and type(t)=="table"
@@ -96,23 +98,21 @@ for loc,t in pairs(Locs) do
     if valid then
         t.r,t.y,t.x = r,y,x
         t.a = tostring(t.a or "")
-        if FL711_ToNumber(t.n) then
-            t.n = FL711_ToNumber(t.n)
-        else
-            local total=0
-            for id,n in pairs(t) do
-                if type(id)=="string" and #id==5 and ID[id] then
-                    total = total + (FL711_ToNumber(n) or 0)
+        local total=0
+        for id,n in pairs(t) do
+            if type(id)=="string" and #id==5 then
+                local count=FL711_ToNumber(n)
+                if count~=nil then
+                    t[id]=count
+                    total=total+count
+                else
+                    FL715_BadLocCounters[tostring(loc).."|"..id]=n
+                    FL715_BadLocCounterCount=FL715_BadLocCounterCount+1
+                    t[id]=0
                 end
             end
-            t.n = total
         end
-        for id,n in pairs(t) do
-            if type(id)=="string" and #id==5 and ID[id] then
-                local count=FL711_ToNumber(n)
-                if count then t[id]=count end
-            end
-        end
+        t.n=total
     else
         FL711_BadLocs[loc] = t
         FL711_BadLocCount = FL711_BadLocCount+1
@@ -123,25 +123,63 @@ if FL711_BadLocCount>0 then
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs_Quarantine",FL711_BadLocs)
     printe((FL_Lang=="FR" and "Ancien(s) lieu(x) invalide(s) ignoré(s) : " or "Invalid old fishing location(s) ignored: ")..FL711_BadLocCount)
 end
+if FL715_BadLocCounterCount>0 then
+    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_LocsCounter_Quarantine",FL715_BadLocCounters)
+    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
+    printe((FL_Lang=="FR" and "Compteur(s) de lieu corrompu(s) remis à zéro : " or "Corrupt location counter(s) reset to zero: ")..FL715_BadLocCounterCount)
+end
 
 -- Normalize numeric fields that can survive in very old/plain-string saves.
+local FL715_BadTotals = {}
+local FL715_BadTotalCount = 0
 if type(Totals)=="table" then
     if Totals.fp~=nil then
         local fp=FL711_ToNumber(Totals.fp)
-        if fp then Totals.fp=fp end
+        if fp~=nil then
+            Totals.fp=fp
+        else
+            FL715_BadTotals.fp=Totals.fp
+            FL715_BadTotalCount=FL715_BadTotalCount+1
+            Totals.fp=nil
+        end
     end
     for id,n in pairs(Totals) do
-        if type(id)=="string" and #id==5 and ID[id] then
+        if type(id)=="string" and #id==5 then
             local count=FL711_ToNumber(n)
-            if count then Totals[id]=count end
+            if count~=nil then
+                Totals[id]=count
+            else
+                FL715_BadTotals[id]=n
+                FL715_BadTotalCount=FL715_BadTotalCount+1
+                Totals[id]=0
+            end
         end
     end
 end
+if FL715_BadTotalCount>0 then
+    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_TotalsCounter_Quarantine",FL715_BadTotals)
+    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+    printe((FL_Lang=="FR" and "Compteur(s) personnel(s) corrompu(s) remis à zéro : " or "Corrupt personal counter(s) reset to zero: ")..FL715_BadTotalCount)
+end
+
+local FL715_BadProfs = {}
+local FL715_BadProfCount = 0
 if type(Profs)=="table" then
     for name,value in pairs(Profs) do
         local fp=FL711_ToNumber(value)
-        if fp then Profs[name]=fp end
+        if fp~=nil then
+            Profs[name]=fp
+        else
+            FL715_BadProfs[name]=value
+            FL715_BadProfCount=FL715_BadProfCount+1
+            Profs[name]=0
+        end
     end
+end
+if FL715_BadProfCount>0 then
+    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs_Quarantine",FL715_BadProfs)
+    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs",Profs)
+    printe((FL_Lang=="FR" and "Maîtrise(s) corrompue(s) remise(s) à zéro : " or "Corrupt proficiency value(s) reset to zero: ")..FL715_BadProfCount)
 end
 
 -- Migrate legacy coordinate-only keys to region-qualified internal keys.
@@ -435,7 +473,7 @@ function FL_Command:Execute(cmd,args)
             return
         end
     end
-    if args=="catch" then
+    if cmd=="fl" and args=="catch" then
         printh(FL_Lang=="FR" and "Historique des prises :" or "Fishing catch record:")
         FL711_PrintList(Totals)
         return
