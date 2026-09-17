@@ -143,17 +143,20 @@ function FL_Window:Constructor()
 		Totals.shl = FL_Shortcut(sender,FL_Lang=="FR" and "2e emplacement" or "2nd")
 	end
 
-	-- Create a set location button
-	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=140}, {x=125,y=20} )
+	-- Create a clickable Alias covering the location button.
+	-- LOTRO must receive the click through a Quickslot Alias. Put the visual
+	-- LOTRO button above it with mouse input disabled so the Alias text/icon is
+	-- fully hidden while the whole button remains clickable.
 	local slot = Turbine.UI.Lotro.Quickslot()
-	slot:SetParent( self.locButton )
-    -- The alias Quickslot must receive the real player click in LOTRO.
-    -- Make it invisible and cover the whole visible button.
-    slot:SetPosition( 0,0 )
-    slot:SetSize( self.locButton:GetWidth(), self.locButton:GetHeight() )
-    slot:SetOpacity( 0 )
+	slot:SetParent( self )
+    slot:SetPosition( 30,140 )
+    slot:SetSize( 125,20 )
     slot:SetShortcut(Turbine.UI.Lotro.Shortcut( Alias,"/fll ;loc" ))
     slot:SetAllowDrop( false )
+
+	self.locButton = self:AddField(Button, UI.setloc, {x=0,y=0}, {x=125,y=20} )
+    self.locButton:SetParent( slot )
+    self.locButton:SetMouseVisible( false )
 
 	-- Create a Inventory listing button
 	self.listButton = self:AddField(Button, UI.listloc, {x=175,y=140}, {x=135,y=20} )
