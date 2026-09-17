@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR8.3**.
+Version actuelle : **1.3-FR8.4**.
 
 ## Installation
 
@@ -29,7 +29,8 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - **FR8.0** : consolidation release — compteurs strictement entiers, positions bornées avant création de l’UI, cohérence des clés de lieux, quarantaines bornées, pending récupéré même sans `FL_Totals`, cache de noms séparé par langue, protection des liens `ExamineItemInstance`, retry automatique des derniers noms FR manquants, guide sans fuite de libellés FR sur EN/DE, et tests Lua/CI ;
 - **FR8.1** : bypass Shift de la canne conservé après redémarrage, faux messages de maîtrise hors canal Advancement ignorés, noms du guide adaptés à la langue, ancien cache FR8.0 assaini sans réutiliser le cache historique non typé, et clés de `FL_Profs` validées ;
 - **FR8.2** : l’icône flottante utilise la couche UI normale (`ZOrder 0`) comme TravelRef et LOTRO Events, afin que la carte et les panneaux natifs LOTRO puissent passer devant ;
-- **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active.
+- **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active ;
+- **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.
 
 ## Commandes utiles
 
@@ -44,7 +45,7 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 
 ## Limite de l’API LOTRO
 
-FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR8.3 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
+FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR8.4 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
 
 ## Qualité / tests
 
