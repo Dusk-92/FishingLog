@@ -1,4 +1,4 @@
--- FishingLog FR7.15 - regional fishing/deed guide
+-- FishingLog FR8.0 - regional fishing/deed guide
 -- coding: utf-8
 --
 -- This file intentionally contains only reliable fishing-deed data. FishingLog
@@ -20,6 +20,10 @@ local function norm(s)
     s = s:gsub("ç","c"):gsub("œ","oe")
     s = s:gsub("’","'")
     return s
+end
+
+local function L(fr,en)
+    return FL_Lang=="FR" and fr or en
 end
 
 FL_Guide.Groups = {
@@ -131,12 +135,14 @@ function FL_Guide.MatchArea(area)
     return nil,nil
 end
 
+-- FL_Main historically reads d.fr directly. Keep that field, but make it
+-- language-safe so EN/DE clients never receive a French-only deed label.
 FL_Guide.Deeds = {
-    {key="darter", fr="Maître de la pêche au dard", ids={"0F124","0F11E","0F12B","0F128","0F13A","0F141","0F133","0F137","0F139"}},
-    {key="sturgeon", fr="Maître de la pêche à l’esturgeon", ids={"0F127","0F136","0F132","0F142","0F120","0F11F","0F130","0F126","0F13E"}},
-    {key="trout", fr="Maître de la pêche à la truite", ids={"0EFCF","0EFD6","0EFCD","0EFD1","0EFD3","0EFD2","0EFD4","0EFD0","0EFCE"}},
-    {key="lake", fr="Maître du lac", ids={"4D554","4D557","4D55A","4D548","4D556","4D549","4D546","4D547","4D54E","4D555","4D54A","4D551","4D54F","4D553","4D54B","4D558","4D55D","4D55B","4D54D","4D559"}},
-    {key="salmon", fr="Un saumon de 25 kilos", ids={"0F22C"}},
+    {key="darter", fr=L("Maître de la pêche au dard","Darter fishing deed"), ids={"0F124","0F11E","0F12B","0F128","0F13A","0F141","0F133","0F137","0F139"}},
+    {key="sturgeon", fr=L("Maître de la pêche à l’esturgeon","Sturgeon fishing deed"), ids={"0F127","0F136","0F132","0F142","0F120","0F11F","0F130","0F126","0F13E"}},
+    {key="trout", fr=L("Maître de la pêche à la truite","Trout fishing deed"), ids={"0EFCF","0EFD6","0EFCD","0EFD1","0EFD3","0EFD2","0EFD4","0EFD0","0EFCE"}},
+    {key="lake", fr=L("Maître du lac","Lake fishing deed"), ids={"4D554","4D557","4D55A","4D548","4D556","4D549","4D546","4D547","4D54E","4D555","4D54A","4D551","4D54F","4D553","4D54B","4D558","4D55D","4D55B","4D54D","4D559"}},
+    {key="salmon", fr=L("Un saumon de 25 kilos","50-pound salmon deed"), ids={"0F22C"}},
 }
 
 function FL_Guide.GetDeed(key)
@@ -154,6 +160,7 @@ function FL_Guide.GetDeed(key)
 end
 
 function FL_Guide.GetFishLabel(id)
+    if FL_Lang~="FR" then return nil end
     for _,g in pairs(FL_Guide.Groups) do
         for _,f in ipairs(g.fish) do if f.id==id then return f.nameFR end end
     end
@@ -171,9 +178,9 @@ function FL_Guide.CountCaught(ids, totals)
 end
 
 FL_Guide.SkillMilestones = {
-    {10,"Apprenti pêcheur à la ligne"},
-    {50,"Compagnon pêcheur à la ligne"},
-    {100,"Expert pêcheur à la ligne"},
-    {150,"Maître pêcheur à la ligne"},
-    {200,"Seigneur des Ruisseaux"},
+    {10,L("Apprenti pêcheur à la ligne","Apprentice Angler")},
+    {50,L("Compagnon pêcheur à la ligne","Journeyman Angler")},
+    {100,L("Expert pêcheur à la ligne","Expert Angler")},
+    {150,L("Maître pêcheur à la ligne","Master Angler")},
+    {200,L("Seigneur des Ruisseaux","Lord of Streams")},
 }
