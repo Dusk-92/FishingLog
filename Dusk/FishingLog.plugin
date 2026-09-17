@@ -3,9 +3,9 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down / adaptation FR Dusk-92</Author>
-	<Version>1.3-FR8.0</Version>
+	<Version>1.3-FR8.1</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR8.0 : consolidation release, sauvegardes strictes, caches par langue, récupération sûre et tests automatisés.</Description>
+	<Description>FR8.1 : bypass Shift persistant, maîtrise canal-safe, guide langue-safe et cache FR assaini.</Description>
 	<website>https://github.com/Dusk-92/FishingLog</website>
   </Information>
   <Package>Dusk.FishingLog.FL_Preflight</Package>
