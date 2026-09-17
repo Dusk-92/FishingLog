@@ -4,6 +4,9 @@
 import "Turbine.UI.Lotro"
 import "Dusk.Common"
 
+-- FL_Main exposes only prefixed output helpers in the shared Dusk apartment.
+local print,printe = FL_Print,FL_PrintE
+
 local labelFont = Turbine.UI.Lotro.Font.Verdana14
 local foreColor = Turbine.UI.Color( 0.9, 0.9, 0 )
 local whiteColor = Turbine.UI.Color( 1.0, 1.0, 1.0 )
