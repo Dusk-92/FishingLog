@@ -1,9 +1,11 @@
--- FishingLog FR7.2 - regional fishing/deed guide
+-- FishingLog FR7.15 - regional fishing/deed guide
 -- coding: utf-8
 --
 -- This file intentionally contains only reliable fishing-deed data. FishingLog
 -- remains a catch/spot journal; this guide supplements it instead of pretending
 -- that every possible catch is tied to one exact coordinate.
+
+import "Dusk.FishingLog.FL_Number"
 
 FL_Guide = {}
 
@@ -161,7 +163,10 @@ end
 
 function FL_Guide.CountCaught(ids, totals)
     local n=0
-    for _,id in ipairs(ids) do if tonumber(totals[id] or 0)>0 then n=n+1 end end
+    totals = type(totals)=="table" and totals or {}
+    for _,id in ipairs(ids or {}) do
+        if (FL_ToNumber(totals[id]) or 0)>0 then n=n+1 end
+    end
     return n
 end
 
