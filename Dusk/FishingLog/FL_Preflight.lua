@@ -21,6 +21,7 @@ local FL8_BadLocCount = 0
 local FL8_BadLocCounterCount = 0
 local FL8_RestoredShortcutCount = 0
 local FL8_ProbeWatcher = nil
+local FL8_Active = true
 
 local function FL8_Save(scope,key,value,callback)
     return FL8_RawSave(scope,key,value,callback)
@@ -87,7 +88,8 @@ local function FL8_SanitizeOptions(scope,value)
             local x,y=FL_ToNumber(value.pos1.x),FL_ToNumber(value.pos1.y)
             if x~=nil and y~=nil then
                 local sw,sh=Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
-                local ww,wh=math.floor(340*scale+0.5),math.floor(285*scale+0.5)
+                local ww=math.max(340,math.floor(340*scale+0.5))
+                local wh=math.max(285,math.floor(285*scale+0.5))
                 local nx=math.max(0,math.min(x,math.max(0,sw-ww)))
                 local ny=math.max(0,math.min(y,math.max(0,sh-wh)))
                 if value.pos1.x~=nx or value.pos1.y~=ny then changed=true end
@@ -427,6 +429,7 @@ local FL8_RawEII=Dusk and Dusk.Common and Dusk.Common.EII_ID
 local FL8_SafeEII
 if type(FL8_RawEII)=="function" then
     FL8_SafeEII=function(str)
+        if not FL8_Active then return FL8_RawEII(str) end
         local ok,a,b,c=pcall(FL8_RawEII,str)
         if ok then return a,b,c end
         return nil
@@ -478,15 +481,19 @@ end)
 -- Loads no longer need interception after startup. Saves keep only the narrow
 -- FL_Names language mapping so autosave/unload cannot cross-contaminate caches.
 Turbine.PluginData.Load=FL8_RawLoad
-Turbine.PluginData.Save=function(scope,key,value,callback)
-    if key=="FL_Names" then
+local function FL8_RuntimeSave(scope,key,value,callback)
+    if FL8_Active and key=="FL_Names" then
         return FL8_RawSave(scope,FL8_NamesKey,value,callback)
     end
     return FL8_RawSave(scope,key,value,callback)
 end
+Turbine.PluginData.Save=FL8_RuntimeSave
 
 if not FL8_OK then
-    Turbine.PluginData.Save=FL8_RawSave
+    FL8_Active=false
+    if Turbine.PluginData.Save==FL8_RuntimeSave then
+        Turbine.PluginData.Save=FL8_RawSave
+    end
     if FL8_SafeEII and Dusk.Common.EII_ID==FL8_SafeEII then
         Dusk.Common.EII_ID=FL8_RawEII
     end
@@ -533,8 +540,9 @@ Plugins.FishingLog.Unload=function(sender,args)
     end
 
     local ok,result=pcall(FL8_OldUnload,sender,args)
+    FL8_Active=false
 
-    if Turbine.PluginData.Save~=FL8_RawSave then
+    if Turbine.PluginData.Save==FL8_RuntimeSave then
         Turbine.PluginData.Save=FL8_RawSave
     end
     if FL8_SafeEII and Dusk.Common.EII_ID==FL8_SafeEII then
