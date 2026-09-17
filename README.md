@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR7.11**.
+Version actuelle : **1.3-FR7.12**.
 
 ## Installation
 
@@ -21,7 +21,8 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - icône déplaçable ;
 - protection contre les doubles comptages après reload ;
 - récupération sûre des anciennes sauvegardes ;
-- depuis FR7.11 : clés de lieux séparées par région, sélection déterministe du lieu le plus proche, autosauvegarde toutes les 10 prises et protection de la position de fenêtre.
+- FR7.11 : clés de lieux séparées par région, sélection déterministe du lieu le plus proche, autosauvegarde toutes les 10 prises et protection de la position de fenêtre ;
+- FR7.12 : coordonnées des lieux existants figées, maîtrise de pêche sauvegardée immédiatement et fonctions de sortie préfixées `FL_` pour éviter les collisions dans l’Apartment `Dusk`.
 
 ## Commandes utiles
 
@@ -36,8 +37,10 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 
 ## Crédits
 
-Plugin original : **David Down** — FishingLog 1.3.
+Plugin original : **David Down** — FishingLog.
 
-Adaptation française et maintenance : **Dusk-92**.
+Maintenance de la version LOTROInterface 1.3 : **Vinny**.
+
+Adaptation française et maintenance du fork : **Dusk-92**.
 
 Page du fork : https://github.com/Dusk-92/FishingLog
