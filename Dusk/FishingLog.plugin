@@ -3,11 +3,11 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down</Author>
-	<Version>1.3-FR7.8</Version>
+	<Version>1.3-FR7.9</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.8 : bouton Définir lieu cliquable sur toute la barre, masque du débordement de l’alias ; correctifs précédents conservés.</Description>
+	<Description>FR7.9 : hook chat anti-doublon sur reload, FL_Options sécurisé et scan FR automatique silencieux au démarrage.</Description>
 	<website>http://www.lotrointerface.com/downloads/info1238</website>
   </Information>
-  <Package>Dusk.FishingLog.FL_Main</Package>
+  <Package>Dusk.FishingLog.FL_Loader</Package>
   <Configuration Apartment="Dusk"/>
 </Plugin>
