@@ -3,11 +3,11 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down / adaptation FR Dusk-92</Author>
-	<Version>1.3-FR7.13</Version>
+	<Version>1.3-FR7.14</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.13 : coordonnées FR/EN sûres, clés internes masquées dans le chat et sauvegarde immédiate des raccourcis d’équipement.</Description>
+	<Description>FR7.14 : parsing numérique local-safe intégré au cœur, anciennes sauvegardes normalisées et loader FR7.13 supprimé.</Description>
 	<website>https://github.com/Dusk-92/FishingLog</website>
   </Information>
-  <Package>Dusk.FishingLog.FL_Loader713</Package>
+  <Package>Dusk.FishingLog.FL_Loader</Package>
   <Configuration Apartment="Dusk"/>
 </Plugin>
