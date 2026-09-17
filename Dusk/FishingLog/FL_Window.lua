@@ -111,7 +111,7 @@ function FL_Window:Constructor()
 	if Totals.rod then self.rod:SetShortcut( Shortcut(Item,Totals.rod) ) 
 	else self.rod:SetBackground("Dusk/FishingLog/Rod.tga") end
 	self.rod.ShortcutChanged = function( sender, args )
-		Totals.rod = FL_Shortcut(sender,FL_Lang=="FR" and "Canne à pêche" or "Fishing rod",nil,FishingPole)
+		Totals.rod = FL_Shortcut(sender,FL_Lang=="FR" and "Canne à pêche" or "Fishing rod",nil,nil)
 	end
 
 	-- Create a fishing label

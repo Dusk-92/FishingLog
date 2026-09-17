@@ -214,19 +214,9 @@ if FL711_MigratedCount>0 then
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
 end
 
--- Revalidate a rod restored from an old save. Do not clear it if LOTRO cannot
--- resolve the item yet; only reject a resolved item whose category is wrong.
-if Totals and Totals.rod and FL_window and FL_window.rod then
-    local shortcut = FL_window.rod:GetShortcut()
-    local item = shortcut and shortcut:GetItem()
-    local info = item and item:GetItemInfo()
-    if info and info:GetCategory()~=FishingPole then
-        Totals.rod = nil
-        FL_window.rod:SetShortcut(Turbine.UI.Lotro.Shortcut())
-        FL_window.rod:SetBackground("Dusk/FishingLog/Rod.tga")
-        printe(FL_Lang=="FR" and "L’ancienne canne enregistrée n’était pas valide et a été retirée." or "The saved fishing rod was invalid and has been cleared.")
-    end
-end
+-- FR8.3: do not revalidate fishing rods through a numeric item-category ID.
+-- LOTRO can return a different category for valid rods (including the basic rod).
+-- Shortcut validity is already handled safely by the preflight Quickslot test.
 
 local function FL711_SaveRuntimeData()
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)

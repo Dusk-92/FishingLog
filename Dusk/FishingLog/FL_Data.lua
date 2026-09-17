@@ -1,7 +1,7 @@
 -- Fishing Log Data
 -- coding: utf-8 'ä
 
-FishingPole = 104 -- item category
+FishingPole = 104 -- legacy category value; no longer used to validate fishing rods
 Region = { Eriador=1, Rhovanion=2, Gondor=3, Mordor=4, Haradwaith=5 }
 RegN = {}
 for name,ix in pairs(Region) do RegN[ix] = name end
