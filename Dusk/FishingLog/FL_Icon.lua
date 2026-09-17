@@ -6,6 +6,10 @@
 -- installed BEFORE loading the dedicated icon state.
 import "Dusk.Common"
 
+-- FR7.5: suppress the automatic FR-name scan at login. The manual /fl fr
+-- command still works because it calls FL_AutoLocalize(true).
+if FL_Options then FL_Options.frProbeVersion = 3 end
+
 FL_IconWindow = Turbine.UI.Window()
 FL_IconWindow:SetSize(32,32)
 FL_IconWindow:SetZOrder(1000)
