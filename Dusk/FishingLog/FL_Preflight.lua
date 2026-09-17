@@ -1,4 +1,4 @@
--- FishingLog FR8.1 final release preflight.
+-- FishingLog FR8.3 release preflight.
 -- Validates saved state before FL_Main/FL_Window, keeps localized name caches
 -- separated, preserves Shift-bypassed rod shortcuts, and guards legacy runtime
 -- paths without adding another loader layer.
@@ -53,7 +53,7 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
         end
     end
 
-    table.insert(history.entries,{version="FR8.1",data=payload})
+    table.insert(history.entries,{version="FR8.3",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
@@ -228,7 +228,9 @@ local function FL8_SanitizeTotals(scope,value)
     local pendingChanged=false
     for _,field in ipairs({"rod","wpn","shl"}) do
         local bypass=(field=="rod" and value.rodBypass==true)
-        local expectedCategory=(field=="rod" and not bypass) and 104 or nil
+        -- FR8.3: numeric LOTRO item-category IDs are not stable enough to validate rods.
+        -- Keep the real Quickslot/Item validation, but never reject a rod by category number.
+        local expectedCategory=nil
         local saved=value[field]
         local waiting=pending[field]
 
