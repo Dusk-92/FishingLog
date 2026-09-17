@@ -12,7 +12,9 @@ if FL_Options then FL_Options.frProbeVersion = 3 end
 
 FL_IconWindow = Turbine.UI.Window()
 FL_IconWindow:SetSize(32,32)
-FL_IconWindow:SetZOrder(1000)
+-- Same launcher layer as TravelRef / LOTRO Events: native LOTRO panels such as
+-- the world map can cover the icon instead of the icon staying always on top.
+FL_IconWindow:SetZOrder(0)
 
 local sw, sh = Turbine.UI.Display.GetWidth(), Turbine.UI.Display.GetHeight()
 local defaultX = math.max(0, sw - 52)
