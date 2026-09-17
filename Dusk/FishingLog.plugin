@@ -3,9 +3,9 @@
   <Information>
 	<Name>FishingLog</Name>
 	<Author>David Down</Author>
-	<Version>1.3-FR7.4</Version>
+	<Version>1.3-FR7.5</Version>
 	<Image>Dusk/FishingLog/Fish.tga</Image>
-	<Description>FR7.4 : Audit Fix + sauvegarde dédiée de l’icône + guide régional et prouesses de pêche ; 156/159 noms FR officiels.</Description>
+	<Description>FR7.5 : sauvegarde dédiée de l’icône, guide régional et prouesses de pêche ; scan FR automatique désactivé au démarrage.</Description>
 	<website>http://www.lotrointerface.com/downloads/info1238</website>
   </Information>
   <Package>Dusk.FishingLog.FL_Main</Package>
