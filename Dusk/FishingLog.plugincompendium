@@ -2,7 +2,7 @@
 <PluginConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Id>1238</Id>
   <Name>FishingLog</Name>
-  <Version>1.3-FR7.6</Version>
+  <Version>1.3-FR7.7</Version>
   <Author>David Down</Author>
   <InfoUrl>http://www.lotrointerface.com/downloads/info1238</InfoUrl>
   <DownloadUrl>http://www.lotrointerface.com/downloads/download1238</DownloadUrl>
