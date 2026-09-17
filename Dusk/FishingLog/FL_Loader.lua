@@ -1,4 +1,4 @@
--- FishingLog FR7.11 runtime hardening layer.
+-- FishingLog FR7.12 runtime hardening layer.
 -- Keeps FL_Main intact while fixing reload safety, old-save edge cases,
 -- location-key collisions, deterministic spot selection and crash-loss risk.
 
@@ -33,6 +33,9 @@ end)
 Turbine.PluginData.Load = FL711_RawLoad
 if not FL711_LoadOK then error(FL711_LoadError) end
 
+-- FL_Main keeps short local aliases for compatibility but exposes only prefixed
+-- output helpers to the shared Dusk apartment.
+local print,printh,printe = FL_Print,FL_PrintH,FL_PrintE
 local FL711_MainChat = Turbine.Chat.Received
 
 -- Keep a restored window on-screen after resolution / monitor-layout changes.
@@ -201,6 +204,17 @@ local function FL711_ChatHandler(sender,args)
             end
         end
     end
+
+    -- Proficiency changes are rare and important enough to persist immediately.
+    -- FL_Main has already updated Totals.fp and Profs before control returns here.
+    if args and args.ChatType==Turbine.ChatType.Advancement and type(args.Message)=="string" then
+        local low=string.lower(args.Message)
+        if (low:find("fishing",1,true) or low:find("pêche",1,true) or
+            low:find("peche",1,true) or low:find("angeln",1,true)) and
+            args.Message:match("(%d+)") then
+            FL711_SaveRuntimeData()
+        end
+    end
     return result
 end
 
@@ -284,7 +298,10 @@ function FL_Command:Execute(cmd,args)
                 -- competing candidates for this call so it necessarily picks
                 -- the true nearest one.
                 local hidden={}
+                local originalY,originalX
                 if bestKey then
+                    originalY=FL711_ToNumber(Locs[bestKey] and Locs[bestKey].y)
+                    originalX=FL711_ToNumber(Locs[bestKey] and Locs[bestKey].x)
                     for key,t in pairs(Locs) do
                         if key~=bestKey and type(t)=="table" and FL711_ToNumber(t.r)==r then
                             local ty,tx=FL711_ToNumber(t.y),FL711_ToNumber(t.x)
@@ -299,6 +316,13 @@ function FL_Command:Execute(cmd,args)
                 local ok,res=pcall(FL711_OldExecute,self,cmd,args)
                 for key,t in pairs(hidden) do Locs[key]=t end
                 if not ok then error(res) end
+
+                -- FL_Main refreshes y/x to the player's current click position.
+                -- Keep an existing spot anchored to the coordinates it was created at.
+                if bestKey and Locs[bestKey] then
+                    if originalY then Locs[bestKey].y=originalY end
+                    if originalX then Locs[bestKey].x=originalX end
+                end
 
                 local selectedKey=bestKey
                 if not selectedKey then
