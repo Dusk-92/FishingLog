@@ -1,8 +1,9 @@
--- FishingLog FR7.12 runtime hardening layer.
--- Keeps FL_Main intact while fixing reload safety, old-save edge cases,
+-- FishingLog FR7.14 runtime hardening layer.
+-- Handles reload safety, old-save edge cases, locale-safe numeric parsing,
 -- location-key collisions, deterministic spot selection and crash-loss risk.
 
 import "Dusk.Common"
+import "Dusk.FishingLog.FL_Number"
 
 -- Validate FL_Options before FL_Main reads it. Keep the automatic FR probe
 -- disabled at startup; /fl fr still forces a manual retry when wanted.
@@ -14,7 +15,7 @@ Turbine.PluginData.Load = function(scope,key,callback)
         value.frProbeVersion = 3
         if value.pos1~=nil then
             if type(value.pos1)=="table" then
-                local x,y = tonumber(value.pos1.x),tonumber(value.pos1.y)
+                local x,y = FL_ToNumber(value.pos1.x),FL_ToNumber(value.pos1.y)
                 if x and y then value.pos1={x=x,y=y} else value.pos1=nil end
             else
                 value.pos1=nil
@@ -44,8 +45,8 @@ local function FL711_ClampMainWindow()
     local sw,sh = Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
     local ww,wh = FL_window:GetWidth(),FL_window:GetHeight()
     local x,y = FL_window:GetPosition()
-    x = tonumber(x) or 0
-    y = tonumber(y) or 0
+    x = FL_ToNumber(x) or 0
+    y = FL_ToNumber(y) or 0
     local nx = math.max(0,math.min(x,math.max(0,sw-ww)))
     local ny = math.max(0,math.min(y,math.max(0,sh-wh)))
     if nx~=x or ny~=y then FL_window:SetPosition(nx,ny) end
@@ -54,9 +55,7 @@ end
 FL711_ClampMainWindow()
 
 local function FL711_ToNumber(v)
-    if type(v)=="number" then return v end
-    if type(v)=="string" then return tonumber((v:gsub(",","."))) end
-    return nil
+    return FL_ToNumber(v)
 end
 
 local function FL711_DisplayLocKey(key)
@@ -74,9 +73,9 @@ end
 
 local function FL711_LocValue(str,neg)
     if type(str)~="string" then return nil end
-    local clean=str:gsub("%s",""):gsub(",",".")
+    local clean=str:gsub("%s","")
     local dir=clean:sub(-1)
-    local nbr=tonumber(clean:sub(1,-2))
+    local nbr=FL_ToNumber(clean:sub(1,-2))
     if not nbr then return nil end
     if dir==neg or (neg=="W" and dir=="O") then nbr=-nbr end
     return nbr
@@ -108,6 +107,12 @@ for loc,t in pairs(Locs) do
             end
             t.n = total
         end
+        for id,n in pairs(t) do
+            if type(id)=="string" and #id==5 and ID[id] then
+                local count=FL711_ToNumber(n)
+                if count then t[id]=count end
+            end
+        end
     else
         FL711_BadLocs[loc] = t
         FL711_BadLocCount = FL711_BadLocCount+1
@@ -117,6 +122,26 @@ for loc in pairs(FL711_BadLocs) do Locs[loc]=nil end
 if FL711_BadLocCount>0 then
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs_Quarantine",FL711_BadLocs)
     printe((FL_Lang=="FR" and "Ancien(s) lieu(x) invalide(s) ignoré(s) : " or "Invalid old fishing location(s) ignored: ")..FL711_BadLocCount)
+end
+
+-- Normalize numeric fields that can survive in very old/plain-string saves.
+if type(Totals)=="table" then
+    if Totals.fp~=nil then
+        local fp=FL711_ToNumber(Totals.fp)
+        if fp then Totals.fp=fp end
+    end
+    for id,n in pairs(Totals) do
+        if type(id)=="string" and #id==5 and ID[id] then
+            local count=FL711_ToNumber(n)
+            if count then Totals[id]=count end
+        end
+    end
+end
+if type(Profs)=="table" then
+    for name,value in pairs(Profs) do
+        local fp=FL711_ToNumber(value)
+        if fp then Profs[name]=fp end
+    end
 end
 
 -- Migrate legacy coordinate-only keys to region-qualified internal keys.
@@ -170,6 +195,28 @@ local function FL711_SaveRuntimeData()
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs",Profs)
     Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Names",FL_Names)
     Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+end
+
+local function FL711_SaveTotals()
+    if type(Totals)=="table" then
+        Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+    end
+end
+
+-- Save equipment shortcuts immediately instead of waiting for ten catches or unload.
+local function FL711_WrapShortcut(control)
+    if not control or type(control.ShortcutChanged)~="function" then return end
+    local previous=control.ShortcutChanged
+    control.ShortcutChanged=function(sender,args)
+        local result=previous(sender,args)
+        FL711_SaveTotals()
+        return result
+    end
+end
+if FL_window then
+    FL711_WrapShortcut(FL_window.rod)
+    FL711_WrapShortcut(FL_window.weapon)
+    FL711_WrapShortcut(FL_window.shield)
 end
 
 -- Generation gate: an old FishingLog wrapper may remain buried under another
