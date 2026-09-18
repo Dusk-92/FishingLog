@@ -1,4 +1,4 @@
--- FishingLog FR9.1 release preflight.
+-- FishingLog FR10.2 release preflight.
 -- Validates saved state before FL_Main/FL_Window, keeps localized name caches
 -- separated, validates equipment shortcuts without unstable category IDs, and
 -- guards legacy runtime paths without adding another loader layer.
@@ -72,7 +72,7 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
         end
     end
 
-    table.insert(history.entries,{version="FR9.1",data=payload})
+    table.insert(history.entries,{version="FR10.2",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
@@ -146,8 +146,8 @@ local function FL8_SanitizeOptions(scope,value)
             local x,y=FL_ToNumber(value.pos1.x),FL_ToNumber(value.pos1.y)
             if x~=nil and y~=nil then
                 local sw,sh=Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
-                local ww=math.max(1,math.floor(340*scale+0.5))
-                local wh=math.max(1,math.floor(285*scale+0.5))
+                local ww=math.max(1,math.floor(360*scale+0.5))
+                local wh=math.max(1,math.floor(315*scale+0.5))
                 local nx=math.max(0,math.min(x,math.max(0,sw-ww)))
                 local ny=math.max(0,math.min(y,math.max(0,sh-wh)))
                 if value.pos1.x~=nx or value.pos1.y~=ny then changed=true end
