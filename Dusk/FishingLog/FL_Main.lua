@@ -32,17 +32,10 @@ local help
 
 import "Dusk.Common.Help"
 
-local locPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) ox(.-%d+%.?%d*) oy(.-%d+%.?%d*) oz(.-%d+%.?%d*)"
-local liPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) i%d* ox(.-%d+%.?%d*) oy(.-%d+%.?%d*) oz(.-%d+%.?%d*)"
-local iPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) cInside ox(.-%d+%.?%d*) oy(.-%d+%.?%d*) oz(.-%d+%.?%d*)"
 local xlink = "<Examine:IIDDID:0x0000000000000000:0x700%s>[%s]<\\Examine>"
-local fpPat = "Your proficiency in Fishing has increased to (%d+)."
 local Zloc = "^%s*(.-)%s*:%s*(.-)%s*:%s*([%d%.,]+%s*[NS])%s*,%s*([%d%.,]+%s*[EWO])%s*$"
-local x0,y0 = 1468,1244
 local locStr,locTbl
-local FL_LastRawCoords
 FL_CurrentArea = nil
-FL_CurrentRegionName = nil
 FL_CurrentLocationText = nil
 local FL_NoLocationWarned = false
 FL_TrackUnknown = false
@@ -186,17 +179,12 @@ if profsChanged then
 end
 
 import "Dusk.FishingLog.FL_Helper"
+import "Dusk.FishingLog.FL_Deeds"
 import "Dusk.FishingLog.FL_Window"
 import "Dusk.FishingLog.FL_Icon"
 
 -- First-run FR database enrichment. Use /fl fr to run it again manually.
 FL_AutoLocalize(false)
-
-local function pos(n0,ls,os)
-    local ln,on = FL_ToNumber(ls),FL_ToNumber(os)
-    if not ln or not on then return nil end
-	return (ln + math.fmod(on,20)/20 - n0)/10
-end
 
 local Chat = Turbine.Chat.Received
 Turbine.Chat.Received = function (sender,args)
@@ -216,6 +204,8 @@ Turbine.Chat.Received = function (sender,args)
 			Totals.fp = fp
 			Profs[pname] = fp
 			if FL_window and FL_window.SetFishingLevel then FL_window:SetFishingLevel(fp) end
+            if type(FL_HelperRefresh)=="function" then FL_HelperRefresh() end
+            if FL_deedsWindow and FL_deedsWindow:IsVisible() then FL_deedsWindow:Refresh() end
 			return
 		end
 	end
@@ -253,20 +243,12 @@ Turbine.Chat.Received = function (sender,args)
 				locTbl[id] = locTbl[id]+1
 				locTbl.n = (locTbl.n or 0)+1
 			end
+            if FL_deedsWindow and FL_deedsWindow:IsVisible() then FL_deedsWindow:Refresh() end
 		elseif (FL_TrackUnknown or FL_TrackHover) then
 			printe((FL_Lang=="FR" and "Inconnu : " or "Unknown: ")..name..", id="..tostring(id))
 		end
 		return
 	end
-	if args.ChatType~=Turbine.ChatType.Standard then return end
-	local r,lx,ly,ox,oy,oz = msg:match(locPat)
-	if not r then r,lx,ly,ox,oy,oz = msg:match(liPat) end
-	if not r then r,lx,ly,ox,oy,oz = msg:match(iPat) end
-	if not r then return end
-	local ew,ns = pos(x0,lx,ox), pos(y0,ly,oy)
-	-- Keep raw /loc coordinates separate from FishingLog's selected fishing spot.
-	-- The previous code overwrote locStr here, which could desynchronise /fll last.
-    if ew and ns then FL_LastRawCoords = string.format("%.1f,%.1f",ns,ew) end
 end
 
 local function distance(dy,dx) return math.sqrt(dy*dy+dx*dx) end
@@ -435,7 +417,6 @@ function FL_Command:Execute( cmd,args )
 			-- Refresh area name too: old saved spots may have been created before this guide.
 			locTbl.r, locTbl.a, locTbl.y, locTbl.x = r, a, y1, x1
 			FL_CurrentArea = a
-			FL_CurrentRegionName = reg
 			FL_CurrentLocationText = locStr
 			if FL_window and FL_window.SetCurrentLocation then FL_window:SetCurrentLocation(a,FL_DisplayLocKey(locStr)) end
 			local prefix = isNew and (FL_Lang=="FR" and "Nouveau lieu : " or "New location: ") or (FL_Lang=="FR" and "Lieu actif : " or "Active location: ")
