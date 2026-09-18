@@ -1,10 +1,11 @@
--- FishingLog FR10.0 - integrated FishingHelper guide
+-- FishingLog FR10.2 - integrated FishingHelper guide
 -- UI and integration code by Dusk-92.
 -- Data is vendored from FishingHelper by Homeopatix under the MIT License.
 -- See FishingHelper_LICENSE.txt.
 
 import "Turbine.UI"
 import "Turbine.UI.Lotro"
+import "Dusk.FishingLog.FL_HelperMap"
 
 FL_Helper = FL_Helper or {}
 
@@ -100,29 +101,34 @@ local function loadData()
         quests = {
             names = safeArray(DatasFishingQuests),
             locations = safeArray(DatasFishingQuestsLocation),
-            details = safeArray(DatasFishingQuestsLocationMap)
+            details = safeArray(DatasFishingQuestsLocationMap),
+            questTitles = FL_HelperMap and FL_HelperMap.quests or {}
         },
         normal = {
             names = safeArray(datasNormalFishNames),
             locations = safeArray(datasNormalLocation),
-            icons = safeArray(datasNormalFish)
+            icons = safeArray(datasNormalFish),
+            ids = FL_HelperMap and FL_HelperMap.ids.normal or {}
         },
         rare = {
             names = safeArray(datasRareFishNames),
             locations = safeArray(datasRareLocation),
             levels = safeArray(datasRareFishLVL),
-            icons = safeArray(datasRareFish)
+            icons = safeArray(datasRareFish),
+            ids = FL_HelperMap and FL_HelperMap.ids.rare or {}
         },
         wall = {
             names = safeArray(datasMountableWallFishNames),
             locations = safeArray(datasMountableWallFishLocation),
             levels = safeArray(datasMountableWallFishLVL),
-            icons = safeArray(datasMountableWallFish)
+            icons = safeArray(datasMountableWallFish),
+            ids = FL_HelperMap and FL_HelperMap.ids.wall or {}
         },
         garbage = {
             names = safeArray(datasGarbageFishNames),
             locations = safeArray(datasGarbageFishLocation),
-            icons = safeArray(datasGarbageFish)
+            icons = safeArray(datasGarbageFish),
+            ids = FL_HelperMap and FL_HelperMap.ids.garbage or {}
         }
     }
 
@@ -152,6 +158,22 @@ local function buildRows(key)
         local detail = cleanText(src.details and src.details[i])
         local level = src.levels and tonumber(src.levels[i]) or nil
         local icon = src.icons and src.icons[i] or nil
+        local id = src.ids and src.ids[i] or nil
+
+        -- FishingLog owns canonical FR item names. FishingHelper contributes
+        -- locations, levels and icons, but no longer overrides a known game name.
+        if FL_Lang=="FR" and id and ID and ID[id] then
+            name = ID[id].ln or ID[id].n or name
+        end
+
+        -- Same rule for quest titles: keep FishingHelper's displayed level, but
+        -- source the French title from FishingLog's canonical quest dictionary.
+        if FL_Lang=="FR" and src.questTitles and src.questTitles[i] then
+            local prefix = name:match("^(%[%d+%])")
+            local questKey = src.questTitles[i]
+            local canonical = (FL_QuestFR and FL_QuestFR[questKey]) or questKey
+            name = (prefix and (prefix.." ") or "")..canonical
+        end
 
         if detail ~= "" and detail ~= location then
             if location ~= "" then
@@ -165,7 +187,8 @@ local function buildRows(key)
             name = name ~= "" and name or ("#" .. tostring(i)),
             location = location,
             level = level,
-            icon = icon
+            icon = icon,
+            id = id
         }
     end
 
@@ -178,6 +201,18 @@ local muted = Turbine.UI.Color(0.72, 0.72, 0.72)
 local green = Turbine.UI.Color(0.35, 0.95, 0.35)
 local dark = Turbine.UI.Color(0.06, 0.06, 0.06)
 
+local function centerAndScale(window)
+    local scale = FL_ToNumber(FL_Options and FL_Options.scale) or 1
+    scale = math.max(0.5,math.min(2,scale))
+    window:SetScale(scale)
+    local sw,sh = Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
+    local ww,wh = window:GetWidth()*scale,window:GetHeight()*scale
+    window:SetPosition(
+        math.max(0,math.floor((sw-ww)/2)),
+        math.max(0,math.floor((sh-wh)/2))
+    )
+end
+
 FL_HelperWindow = class(Turbine.UI.Lotro.GoldWindow)
 
 function FL_HelperWindow:Constructor()
@@ -186,13 +221,7 @@ function FL_HelperWindow:Constructor()
     self:SetSize(650, 535)
     self:SetText(UI.title)
     self:SetVisible(false)
-    self:SetWantsKeyEvents(true)
-
-    local displayWidth, displayHeight = Turbine.UI.Display:GetSize()
-    self:SetPosition(
-        math.max(0, math.floor((displayWidth - self:GetWidth()) / 2)),
-        math.max(0, math.floor((displayHeight - self:GetHeight()) / 2))
-    )
+    self:SetWantsKeyEvents(false)
 
     self.categoryButtons = {}
     local order = {"rods","masters","quests","normal","rare","wall","garbage"}
@@ -248,6 +277,7 @@ end
 
 function FL_HelperWindow:ShowCategory(key)
     self:ClearList()
+    self.currentCategory = key
 
     local rows = buildRows(key)
     local fp = FL_ToFishingLevel and FL_ToFishingLevel(Totals and Totals.fp) or nil
@@ -322,8 +352,16 @@ function FL_HelperWindow:ShowCategory(key)
     self.listBox:SetVerticalScrollBar(self.scrollBar)
 end
 
+function FL_HelperWindow:Refresh()
+    self:ShowCategory(self.currentCategory or "rare")
+end
+
+FL_HelperWindow.VisibleChanged = function(sender,args)
+    sender:SetWantsKeyEvents(sender:IsVisible())
+end
+
 FL_HelperWindow.KeyDown = function(sender,args)
-    if args.Action == Turbine.UI.Lotro.Action.Escape then
+    if args.Action == Turbine.UI.Lotro.Action.Escape and not (FL_Options and FL_Options.esc) then
         sender:SetVisible(false)
     end
 end
@@ -332,7 +370,14 @@ function FL_HelperOpen(category)
     if not FL_helperWindow then
         FL_helperWindow = FL_HelperWindow()
     end
-    if category then FL_helperWindow:ShowCategory(category) end
+    if category then FL_helperWindow:ShowCategory(category) else FL_helperWindow:Refresh() end
+    centerAndScale(FL_helperWindow)
     FL_helperWindow:SetVisible(true)
     FL_helperWindow:SetZOrder(3)
+end
+
+function FL_HelperRefresh()
+    if FL_helperWindow and FL_helperWindow:IsVisible() then
+        FL_helperWindow:Refresh()
+    end
 end
