@@ -27,13 +27,13 @@ local Blank
 local UI = {
     title="Fishing Log", rod="Fishing rod:", fish="Fish:", weapon="Weapon:", second="2nd:",
     setloc="Set Location", listloc="List Locations", loccatch="Loc. Catches", personal="Personal Catches",
-    area="Area: none", level="Fishing level: ", regionfish="Area Fish", deeds="Fishing Deeds"
+    area="Area: none", level="Fishing level: ", regionfish="Area Fish", deeds="Fishing Deeds", helper="Fishing Guide"
 }
 if FL_Lang=="FR" then
     UI = {
         title="Carnet de pêche", rod="Canne à pêche :", fish="Pêcher :", weapon="Arme :", second="2e :",
         setloc="Définir lieu", listloc="Liste des lieux", loccatch="Prises du lieu", personal="Mes prises",
-        area="Zone : aucune", level="Niveau de pêche : ", regionfish="Poissons région", deeds="Prouesses"
+        area="Zone : aucune", level="Niveau de pêche : ", regionfish="Poissons région", deeds="Prouesses", helper="Guide pêche"
     }
 end
 
@@ -104,7 +104,7 @@ function FL_Window:Constructor()
 	Turbine.UI.Lotro.Window.Constructor( self )
 
 	-- Position the window near the top center of the screen.
-	self:SetSize( 340,285 )
+	self:SetSize( 340,315 )
 --	self:SetBackColor( Turbine.UI.Color() )
 	local pos = FL_Options.pos1 or 
 		{ x=(Turbine.UI.Display.GetWidth() - self:GetWidth())/3, 
@@ -217,6 +217,11 @@ function FL_Window:Constructor()
     self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=245}, {x=135,y=20} )
     self.deedsButton.Click = function( sender,args )
         FL_Command:Execute("fl","deeds")
+    end
+
+    self.helperButton = self:AddField(Button, UI.helper, {x=30,y=275}, {x=280,y=20} )
+    self.helperButton.Click = function( sender,args )
+        FL_HelperOpen()
     end
 
 end
