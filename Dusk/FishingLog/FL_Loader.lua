@@ -7,7 +7,8 @@ import "Dusk.FishingLog.FL_Number"
 
 -- Validate FL_Options before FL_Main reads it. Keep the automatic FR probe
 -- disabled at startup; /fl fr still forces a manual retry when wanted.
-local FL711_RawLoad = Turbine.PluginData.Load
+local FL711_NativeLoad = Turbine.PluginData.Load
+local FL711_RawLoad = FL_PluginDataLoad or FL711_NativeLoad
 Turbine.PluginData.Load = function(scope,key,callback)
     local value = FL711_RawLoad(scope,key,callback)
     if key=="FL_Options" then
@@ -31,7 +32,7 @@ local FL711_PreviousChat = Turbine.Chat.Received
 local FL711_LoadOK,FL711_LoadError = pcall(function()
     import "Dusk.FishingLog.FL_Main"
 end)
-Turbine.PluginData.Load = FL711_RawLoad
+Turbine.PluginData.Load = FL711_NativeLoad
 if not FL711_LoadOK then error(FL711_LoadError) end
 
 -- FL_Main keeps short local aliases for compatibility but exposes only prefixed
@@ -120,12 +121,12 @@ for loc,t in pairs(Locs) do
 end
 for loc in pairs(FL711_BadLocs) do Locs[loc]=nil end
 if FL711_BadLocCount>0 then
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs_Quarantine",FL711_BadLocs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs_Quarantine",FL711_BadLocs)
     printe((FL_Lang=="FR" and "Ancien(s) lieu(x) invalide(s) ignoré(s) : " or "Invalid old fishing location(s) ignored: ")..FL711_BadLocCount)
 end
 if FL715_BadLocCounterCount>0 then
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_LocsCounter_Quarantine",FL715_BadLocCounters)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_LocsCounter_Quarantine",FL715_BadLocCounters)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs",Locs)
     printe((FL_Lang=="FR" and "Compteur(s) de lieu corrompu(s) remis à zéro : " or "Corrupt location counter(s) reset to zero: ")..FL715_BadLocCounterCount)
 end
 
@@ -157,8 +158,8 @@ if type(Totals)=="table" then
     end
 end
 if FL715_BadTotalCount>0 then
-    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_TotalsCounter_Quarantine",FL715_BadTotals)
-    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+    FL_PluginDataSave(Turbine.DataScope.Character,"FL_TotalsCounter_Quarantine",FL715_BadTotals)
+    FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
     printe((FL_Lang=="FR" and "Compteur(s) personnel(s) corrompu(s) remis à zéro : " or "Corrupt personal counter(s) reset to zero: ")..FL715_BadTotalCount)
 end
 
@@ -177,8 +178,8 @@ if type(Profs)=="table" then
     end
 end
 if FL715_BadProfCount>0 then
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs_Quarantine",FL715_BadProfs)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs",Profs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs_Quarantine",FL715_BadProfs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs",Profs)
     printe((FL_Lang=="FR" and "Maîtrise(s) corrompue(s) remise(s) à zéro : " or "Corrupt proficiency value(s) reset to zero: ")..FL715_BadProfCount)
 end
 
@@ -211,7 +212,7 @@ for _,m in ipairs(FL711_Migrations) do
     end
 end
 if FL711_MigratedCount>0 then
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs",Locs)
 end
 
 -- FR8.3: do not revalidate fishing rods through a numeric item-category ID.
@@ -219,15 +220,15 @@ end
 -- Shortcut validity is already handled safely by the preflight Quickslot test.
 
 local function FL711_SaveRuntimeData()
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs",Profs)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Names",FL_Names)
-    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs",Locs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs",Profs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Names",FL_Names)
+    FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
 end
 
 local function FL711_SaveTotals()
     if type(Totals)=="table" then
-        Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+        FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
     end
 end
 
@@ -414,7 +415,7 @@ function FL_Command:Execute(cmd,args)
                     if FL_window and FL_window.SetCurrentLocation then
                         FL_window:SetCurrentLocation(a,FL711_DisplayLocKey(selectedKey))
                     end
-                    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
+                    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs",Locs)
                 end
                 return res
             end
