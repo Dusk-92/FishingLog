@@ -6,6 +6,7 @@ import "Turbine.UI.Lotro"
 import "Dusk.Common.EII_ID"
 import "Dusk.FishingLog.FL_Data"
 import "Dusk.FishingLog.FL_Number"
+import "Dusk.FishingLog.FL_Parse"
 
 -- Detect localized clients. Item IDs are language-independent, so the same
 -- fishing database can be used on French/English clients.
@@ -35,7 +36,6 @@ local locPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) ox(.-%d+%.?%d
 local liPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) i%d* ox(.-%d+%.?%d*) oy(.-%d+%.?%d*) oz(.-%d+%.?%d*)"
 local iPat = "You are on %a* server %d* at r(%d) lx(%d+) ly(%d+) cInside ox(.-%d+%.?%d*) oy(.-%d+%.?%d*) oz(.-%d+%.?%d*)"
 local xlink = "<Examine:IIDDID:0x0000000000000000:0x700%s>[%s]<\\Examine>"
-local xpat = "<Examine:IIDDID:0x0%x+:0x700(%x+)>%[(.-)%]<\\Examine>"
 local fpPat = "Your proficiency in Fishing has increased to (%d+)."
 local Zloc = "^%s*(.-)%s*:%s*(.-)%s*:%s*([%d%.,]+%s*[NS])%s*,%s*([%d%.,]+%s*[EWO])%s*$"
 local x0,y0 = 1468,1244
@@ -160,15 +160,23 @@ local pname = player:GetName()
 local totalsFp = FL_ToFishingLevel(Totals.fp)
 local profFp = FL_ToFishingLevel(Profs[pname])
 local totalsChanged,profsChanged = false,false
-if totalsFp~=nil then
-    Totals.fp=totalsFp
-    if profFp~=totalsFp then
-        Profs[pname]=totalsFp
+local canonicalFp
+if totalsFp~=nil and profFp~=nil then
+    canonicalFp=math.max(totalsFp,profFp)
+elseif totalsFp~=nil then
+    canonicalFp=totalsFp
+elseif profFp~=nil then
+    canonicalFp=profFp
+end
+if canonicalFp~=nil then
+    if totalsFp~=canonicalFp then
+        Totals.fp=canonicalFp
+        totalsChanged=true
+    end
+    if profFp~=canonicalFp then
+        Profs[pname]=canonicalFp
         profsChanged=true
     end
-elseif profFp~=nil then
-    Totals.fp=profFp
-    totalsChanged=true
 end
 if totalsChanged then
     FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
@@ -195,23 +203,14 @@ Turbine.Chat.Received = function (sender,args)
 	local msg = args.Message
 	if not msg then return end
 
-	-- Proficiency is accepted only from the Advancement channel. English uses
-	-- the exact LOTRO sentence; localized clients keep the hobby-keyword fallback.
+	-- Accept proficiency only from the Advancement channel. Parsing is kept in
+	-- FL_Parse.lua so exact/locale behavior is regression-tested without LOTRO.
 	local fp
 	if args.ChatType==Turbine.ChatType.Advancement then
-		fp = msg:match(fpPat)
-		if not fp then
-			local low = string.lower(msg)
-			if low:find("fishing",1,true) or low:find("pêche",1,true) or
-			   low:find("peche",1,true) or low:find("angeln",1,true) then
-				fp = msg:match("(%d+)")
-			end
-		end
+		fp=FL_ParseFishingAdvancement(msg,FL_Lang)
 	end
-	fp = FL_ToFishingLevel(fp)
 	if fp~=nil then
 		local previous=FL_ToFishingLevel(Totals.fp)
-		-- A proficiency-increased message must never move the saved level backwards.
 		if previous==nil or fp>=previous then
 			Totals.fp = fp
 			Profs[pname] = fp
@@ -223,7 +222,7 @@ Turbine.Chat.Received = function (sender,args)
 	if args.ChatType==Turbine.ChatType.SelfLoot then
 		-- Do not depend on localized loot prefixes ("You have acquired", etc.).
 		-- Examine item IDs stay the same on EN/FR/DE clients.
-		local id,name = msg:match(xpat)
+		local id,name = FL_ExtractIIDDID(msg)
 		if not id then id,name = Dusk.Common.EII_ID(msg) end
 		if not id then return end
 		name = name or "?"
@@ -337,7 +336,9 @@ local function FL_PrintRegionGuide()
             if fp then req = req..(fp>=f.level and (FL_Lang=="FR" and " (niveau OK)" or " (level OK)") or (FL_Lang=="FR" and " (niveau insuffisant)" or " (level too low)")) end
         end
         local count = n>0 and ((FL_Lang=="FR" and " — pris x" or " — caught x")..n) or ""
-        print(status..FL_ItemLink(f.id,f.nameFR)..req..count)
+        local label = FL_Guide.GetFishLabel(f.id) or
+            (ID[f.id] and (ID[f.id].ln or ID[f.id].n)) or f.id
+        print(status..FL_ItemLink(f.id,label)..req..count)
     end
     print((FL_Lang=="FR" and "Suivi FishingLog : " or "FishingLog tracking: ")..caught.."/"..#g.fish)
     if g.lakeMaster then
@@ -472,15 +473,12 @@ function FL_Command:Execute( cmd,args )
 	end
     if args=="" then
 		local fp = Totals.fp
-		if fp then 
-			local s,fp = '', FL_ToFishingLevel(fp)
+		if fp then
+			fp = FL_ToFishingLevel(fp)
             if not fp then print(FL_Lang=="FR" and "Maîtrise de pêche invalide." or "Invalid fishing proficiency.") return end
-			if fp>9 then
-				local p = math.floor(fp/50)+1
-				if p<5 then s = FL_Lang=="FR" and (", Pêcheur "..Prof[p]) or (", "..Prof[p].." Angler")
-				else s = FL_Lang=="FR" and ", Seigneur des rivières" or ", Lord of Streams" end
-			end
-			print((FL_Lang=="FR" and "Maîtrise de pêche : " or "Fishing proficiency is ")..fp..s)
+            local title=FL_Guide.GetSkillTitle(fp)
+            local suffix=title and (", "..title) or ""
+			print((FL_Lang=="FR" and "Maîtrise de pêche : " or "Fishing proficiency is ")..fp..suffix)
 		else print(FL_Lang=="FR" and "Maîtrise de pêche inconnue." or "Unknown fishing proficiency.") end
 		return
 	end
@@ -562,7 +560,7 @@ function FL_Command:Execute( cmd,args )
 		end
 		return
 	end
-    local id,name = args:match(xpat)
+    local id,name = FL_ExtractIIDDID(args)
 	if not id then id,name = Dusk.Common.EII_ID(args) end
 	if id then
 		local t = ID[id]
