@@ -22,7 +22,7 @@ local defaultY = math.max(0, math.floor(sh * 0.45))
 
 -- FR7.4: keep the desktop icon position in its own PluginData key.
 -- Store the coordinates as integer strings to avoid any locale/decimal issue.
-local FL_IconState = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_IconState")
+local FL_IconState = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_IconState")
 if type(FL_IconState) ~= "table" then FL_IconState = {} end
 
 local savedX = tonumber(FL_IconState.x)
@@ -48,7 +48,7 @@ function FL_SaveIconPosition()
 
     FL_IconState.x = tostring(x)
     FL_IconState.y = tostring(y)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_IconState",FL_IconState)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_IconState",FL_IconState)
 
     -- Keep the old fields updated only for backwards compatibility.
     if FL_Options then
