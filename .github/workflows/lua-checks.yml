@@ -26,4 +26,8 @@ jobs:
       - name: Check Lua syntax
         run: find Dusk -name '*.lua' -print0 | xargs -0 -n1 luac5.1 -p
       - name: Run pure-Lua regression tests
-        run: lua5.1 tests/test_fl_number.lua
+        run: |
+          for test in tests/test_fl_*.lua; do
+            echo "Running $test"
+            lua5.1 "$test"
+          done

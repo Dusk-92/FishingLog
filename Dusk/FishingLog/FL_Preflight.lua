@@ -1,7 +1,7 @@
--- FishingLog FR8.3 release preflight.
+-- FishingLog FR9.0 release preflight.
 -- Validates saved state before FL_Main/FL_Window, keeps localized name caches
--- separated, preserves Shift-bypassed rod shortcuts, and guards legacy runtime
--- paths without adding another loader layer.
+-- separated, validates equipment shortcuts without unstable category IDs, and
+-- guards legacy runtime paths without adding another loader layer.
 
 import "Turbine.UI.Lotro"
 import "Dusk.Common"
@@ -27,10 +27,6 @@ local FL8_RestoredShortcutCount = 0
 local FL8_ProbeWatcher = nil
 local FL8_Active = true
 local FL81_NamesReset = false
-local FL81_BypassRodRestore = nil
-local FL81_BypassPending = nil
-local FL81_ChatGuard = nil
-local FL81_PreFishingChat = nil
 
 local function FL8_Load(scope,key,callback)
     if type(FL8_RawLoadChecked)=="function" then
@@ -62,20 +58,21 @@ end
 local function FL8_AppendQuarantine(scope,key,payload,callback)
     local previous = FL8_Load(scope,key)
     local history
-    if type(previous)=="table" and previous.__format=="FR8-history" and
+    if type(previous)=="table" and previous.__format=="FR9-history" and
        type(previous.entries)=="table" then
         history = previous
-    elseif type(previous)=="table" and previous.__format=="FR7.18-history" and
+    elseif type(previous)=="table" and
+           (previous.__format=="FR8-history" or previous.__format=="FR7.18-history") and
            type(previous.entries)=="table" then
-        history = {__format="FR8-history",entries=previous.entries}
+        history = {__format="FR9-history",entries=previous.entries}
     else
-        history = {__format="FR8-history",entries={}}
+        history = {__format="FR9-history",entries={}}
         if previous~=nil then
             table.insert(history.entries,{version="legacy",data=previous})
         end
     end
 
-    table.insert(history.entries,{version="FR8.3",data=payload})
+    table.insert(history.entries,{version="FR9.0",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
@@ -132,8 +129,8 @@ local function FL8_SanitizeOptions(scope,value)
             local x,y=FL_ToNumber(value.pos1.x),FL_ToNumber(value.pos1.y)
             if x~=nil and y~=nil then
                 local sw,sh=Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
-                local ww=math.max(340,math.floor(340*scale+0.5))
-                local wh=math.max(285,math.floor(285*scale+0.5))
+                local ww=math.max(1,math.floor(340*scale+0.5))
+                local wh=math.max(1,math.floor(285*scale+0.5))
                 local nx=math.max(0,math.min(x,math.max(0,sw-ww)))
                 local ny=math.max(0,math.min(y,math.max(0,sh-wh)))
                 if value.pos1.x~=nx or value.pos1.y~=ny then changed=true end
@@ -160,11 +157,12 @@ local function FL8_SanitizeOptions(scope,value)
     return value
 end
 
--- Returns: accepted, unresolved, wrongCategory.
-local function FL8_ValidateShortcut(saved,expectedCategory)
-    if type(saved)~="string" or saved=="" then return false,false,false end
+-- Validate only stable Quickslot invariants: Item type + exact payload.
+-- Numeric LOTRO item-category IDs are intentionally not used for equipment.
+local function FL8_ValidateShortcut(saved)
+    if type(saved)~="string" or saved=="" then return false end
 
-    local ok,accepted,unresolved,wrongCategory=pcall(function()
+    local ok,accepted=pcall(function()
         local probe=Turbine.UI.Lotro.Quickslot()
         probe:SetSize(1,1)
         probe:SetVisible(false)
@@ -175,22 +173,12 @@ local function FL8_ValidateShortcut(saved,expectedCategory)
         probe:SetShortcut(shortcut)
 
         local restored=probe:GetShortcut()
-        if not restored or restored:GetType()~=Turbine.UI.Lotro.ShortcutType.Item then
-            return false,false,false
-        end
-        if restored:GetData()~=saved then return false,false,false end
-
-        if expectedCategory~=nil then
-            local item=restored:GetItem()
-            local info=item and item:GetItemInfo()
-            if not info then return true,true,false end
-            if info:GetCategory()~=expectedCategory then return false,false,true end
-        end
-        return true,false,false
+        return restored and
+               restored:GetType()==Turbine.UI.Lotro.ShortcutType.Item and
+               restored:GetData()==saved
     end)
 
-    if not ok then return false,false,false end
-    return accepted==true,unresolved==true,wrongCategory==true
+    return ok and accepted==true
 end
 
 local function FL8_LoadPending(scope)
@@ -222,7 +210,7 @@ local function FL8_SanitizeTotals(scope,value)
     end
 
     if value.fp~=nil then
-        local fp=FL_ToNonNegativeInteger(value.fp)
+        local fp=FL_ToFishingLevel(value.fp)
         if fp~=nil then
             if value.fp~=fp then changed=true end
             value.fp=fp
@@ -235,24 +223,15 @@ local function FL8_SanitizeTotals(scope,value)
         end
     end
 
-    -- Shift is an intentional bypass in the original FishingLog UI. Persist only
-    -- a true marker; false/invalid legacy values collapse back to normal validation.
-    if value.rodBypass~=nil and value.rodBypass~=true then
-        if type(value.rodBypass)~="boolean" then
-            quarantine.rodBypass=value.rodBypass
-            FL8_BadTotalsCount=FL8_BadTotalsCount+1
-            badThisLoad=badThisLoad+1
-        end
+    -- FR9.0: category-based rod validation was removed in FR8.3, so the old
+    -- Shift bypass marker no longer has any meaning. Clean it from old saves.
+    if value.rodBypass~=nil then
         value.rodBypass=nil
         changed=true
     end
 
     local pendingChanged=false
     for _,field in ipairs({"rod","wpn","shl"}) do
-        local bypass=(field=="rod" and value.rodBypass==true)
-        -- FR8.3: numeric LOTRO item-category IDs are not stable enough to validate rods.
-        -- Keep the real Quickslot/Item validation, but never reject a rod by category number.
-        local expectedCategory=nil
         local saved=value[field]
         local waiting=pending[field]
 
@@ -274,32 +253,14 @@ local function FL8_SanitizeTotals(scope,value)
                 value[field]=nil
                 pendingChanged=true
                 changed=true
+            elseif FL8_ValidateShortcut(waiting) then
+                value[field]=waiting
+                pending[field]=nil
+                changed=true
+                pendingChanged=true
+                FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
             else
-                local usable,unresolved,wrongCategory=
-                    FL8_ValidateShortcut(waiting,expectedCategory)
-                if usable then
-                    if bypass then
-                        value[field]=false
-                        FL81_BypassRodRestore=waiting
-                        FL81_BypassPending=pending
-                    else
-                        value[field]=waiting
-                        pending[field]=nil
-                        changed=true
-                        pendingChanged=true
-                        FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
-                    end
-                elseif wrongCategory then
-                    quarantine[field]=waiting
-                    pending[field]=nil
-                    value[field]=nil
-                    pendingChanged=true
-                    changed=true
-                    FL8_BadTotalsCount=FL8_BadTotalsCount+1
-                    badThisLoad=badThisLoad+1
-                else
-                    value[field]=false
-                end
+                value[field]=false
             end
         elseif saved==nil and waiting~=nil then
             pending[field]=nil
@@ -315,44 +276,18 @@ local function FL8_SanitizeTotals(scope,value)
                     pending[field]=nil
                     pendingChanged=true
                 end
-            else
-                local usable,unresolved,wrongCategory=
-                    FL8_ValidateShortcut(saved,expectedCategory)
-                if usable then
-                    if bypass then
-                        pending[field]=saved
-                        value[field]=false
-                        pendingChanged=true
-                        changed=true
-                        FL81_BypassRodRestore=saved
-                        FL81_BypassPending=pending
-                    elseif waiting~=nil then
-                        pending[field]=nil
-                        pendingChanged=true
-                    end
-                elseif wrongCategory then
-                    quarantine[field]=saved
-                    value[field]=nil
-                    changed=true
-                    FL8_BadTotalsCount=FL8_BadTotalsCount+1
-                    badThisLoad=badThisLoad+1
-                    if waiting~=nil then
-                        pending[field]=nil
-                        pendingChanged=true
-                    end
-                else
-                    pending[field]=saved
-                    value[field]=false
+            elseif FL8_ValidateShortcut(saved) then
+                if waiting~=nil then
+                    pending[field]=nil
                     pendingChanged=true
-                    changed=true
                 end
+            else
+                pending[field]=saved
+                value[field]=false
+                pendingChanged=true
+                changed=true
             end
         end
-    end
-
-    if value.rodBypass==true and value.rod==nil and pending.rod==nil then
-        value.rodBypass=nil
-        changed=true
     end
     if pendingChanged then FL8_Save(scope,"FL_PendingShortcuts",pending) end
 
@@ -478,7 +413,7 @@ local function FL8_SanitizeProfs(scope,value)
     local bad={}
     local remove={}
     for name,v in pairs(value) do
-        local fp=FL_ToNonNegativeInteger(v)
+        local fp=FL_ToFishingLevel(v)
         if type(name)=="string" and name~="" and fp~=nil then
             if v~=fp then changed=true end
             value[name]=fp
@@ -562,48 +497,6 @@ if not FL8_OK then
     error(FL8_Error)
 end
 
-if FL81_BypassRodRestore and type(Totals)=="table" and Totals.rodBypass==true and
-   FL_window and FL_window.rod then
-    local handler=FL_window.rod.ShortcutChanged
-    FL_window.rod.ShortcutChanged=nil
-    local data=FL81_BypassRodRestore
-    local ok=pcall(function()
-        local shortcut=Turbine.UI.Lotro.Shortcut(
-            Turbine.UI.Lotro.ShortcutType.Item,data)
-        FL_window.rod:SetShortcut(shortcut)
-        local restored=FL_window.rod:GetShortcut()
-        if not restored or restored:GetType()~=Turbine.UI.Lotro.ShortcutType.Item or
-           restored:GetData()~=data then
-            error("bypassed rod restore failed")
-        end
-    end)
-    FL_window.rod.ShortcutChanged=handler
-    if ok then
-        Totals.rod=data
-        local pending=FL81_BypassPending or FL8_LoadPending(Turbine.DataScope.Character)
-        pending.rod=nil
-        FL8_Save(Turbine.DataScope.Character,"FL_PendingShortcuts",pending)
-        FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
-    end
-end
-
-if FL_window and FL_window.rod and type(FL_window.rod.ShortcutChanged)=="function" then
-    local previousRodChanged=FL_window.rod.ShortcutChanged
-    FL_window.rod.ShortcutChanged=function(sender,args)
-        local bypass=sender:IsShiftKeyDown()
-        local result=previousRodChanged(sender,args)
-        if type(Totals)=="table" then
-            if Totals.rod then
-                Totals.rodBypass=bypass and true or nil
-            else
-                Totals.rodBypass=nil
-            end
-            FL8_Save(Turbine.DataScope.Character,"FL_Totals",Totals)
-        end
-        return result
-    end
-end
-
 if FL_Lang~="FR" and FL_Guide and FL_Guide.Groups and ID then
     for _,group in pairs(FL_Guide.Groups) do
         for _,fish in ipairs(group.fish or {}) do
@@ -612,23 +505,6 @@ if FL_Lang~="FR" and FL_Guide and FL_Guide.Groups and ID then
         end
     end
 end
-
-FL81_PreFishingChat=FL_PreviousChatHandler
-local FL81_FishingChat=Turbine.Chat.Received
-FL81_ChatGuard=function(sender,args)
-    if not FL8_Active then
-        if FL81_PreFishingChat then return FL81_PreFishingChat(sender,args) end
-        return
-    end
-    if args and args.ChatType~=Turbine.ChatType.Advancement and
-       type(args.Message)=="string" and
-       args.Message:match("Your proficiency in Fishing has increased to %d+.") then
-        if FL81_PreFishingChat then return FL81_PreFishingChat(sender,args) end
-        return
-    end
-    if FL81_FishingChat then return FL81_FishingChat(sender,args) end
-end
-Turbine.Chat.Received=FL81_ChatGuard
 
 if type(Totals)=="table" then
     FL8_Save(Turbine.DataScope.Character,"FL_Totals",Totals)
@@ -668,9 +544,6 @@ Plugins.FishingLog.Unload=function(sender,args)
     local ok,result=pcall(FL8_OldUnload,sender,args)
     FL8_Active=false
 
-    if Turbine.Chat.Received==FL81_ChatGuard then
-        Turbine.Chat.Received=FL81_PreFishingChat
-    end
     if FL8_SafeEII and Dusk.Common.EII_ID==FL8_SafeEII then
         Dusk.Common.EII_ID=FL8_RawEII
     end

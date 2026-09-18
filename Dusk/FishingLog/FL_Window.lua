@@ -4,7 +4,7 @@
 import "Turbine.UI.Lotro"
 import "Dusk.Common"
 
--- FL_Main exposes only prefixed output helpers in the shared Dusk apartment.
+-- FL_Main exposes prefixed output helpers inside FishingLog's dedicated Apartment.
 local print,printe = FL_Print,FL_PrintE
 
 local labelFont = Turbine.UI.Lotro.Font.Verdana14
@@ -54,36 +54,50 @@ function FL_Window:AddField(control, text, pos, size)
 	return field
 end
 
-function FL_Shortcut(sender,name,iname,icat)
-	local shortcut = sender:GetShortcut()
-	local itemType = shortcut:GetType()
-	if itemType==0 then return end
-	local itemData = shortcut:GetData()
-	if sender:IsAltKeyDown() then print((FL_Lang=="FR" and "Type=" or "Type=")..itemType..(FL_Lang=="FR" and ", Données=" or ", Data=")..itemData) end
-	if itemType~=Item then 
-		sender:SetShortcut(Blank) 
-		print(FL_Lang=="FR" and (name.." réinitialisé.") or (name.." reset."))
-		return 
-	end
-	local Item = shortcut:GetItem()
-	if not Item then printe(FL_Lang=="FR" and "Objet introuvable." or "Item is null.") return end
-	if sender:IsShiftKeyDown() then iname = nil; icat = nil end
-	if icat then
-		local info = Item:GetItemInfo()
-		local category = info and info:GetCategory()
-		if category ~= icat then
-			printe(FL_Lang=="FR" and (Item:GetName().." n’est pas une canne à pêche valide.") or (Item:GetName().." is not a valid fishing rod."))
-			sender:SetShortcut(Blank)
-			return
-		end
-	end
-	if iname and Item:GetName():sub(-#iname)~=iname then
-		printe(FL_Lang=="FR" and (Item:GetName().." n’est pas un objet valide pour cet emplacement.") or (Item:GetName().." is not a "..iname))
-		sender:SetShortcut(Blank)
-		return
-	end
-	print(FL_Lang=="FR" and (name.." défini sur "..Item:GetName()) or (name.." set to "..Item:GetName()))
-	return itemData
+function FL_Shortcut(sender,name)
+    local shortcut = sender:GetShortcut()
+    local itemType = shortcut:GetType()
+    if itemType==0 then return end
+    local itemData = shortcut:GetData()
+    if sender:IsAltKeyDown() then
+        print("Type="..tostring(itemType)..", "..(FL_Lang=="FR" and "Données=" or "Data=")..tostring(itemData))
+    end
+    if itemType~=Item then
+        sender:SetShortcut(Blank)
+        print(FL_Lang=="FR" and (name.." réinitialisé.") or (name.." reset."))
+        return
+    end
+    if type(itemData)~="string" or itemData=="" then
+        printe(FL_Lang=="FR" and "Raccourci d’objet invalide." or "Invalid item shortcut.")
+        return
+    end
+
+    -- GetItem() may temporarily be nil while LOTRO is resolving the object.
+    -- Preserve the stable shortcut payload instead of erasing a valid drop.
+    local item = shortcut:GetItem()
+    if item then
+        print(FL_Lang=="FR" and (name.." défini sur "..item:GetName()) or
+              (name.." set to "..item:GetName()))
+    else
+        print(FL_Lang=="FR" and (name.." enregistré ; objet en cours de résolution.") or
+              (name.." saved; item is still resolving."))
+    end
+    return itemData
+end
+
+local function FL_RestoreSavedShortcut(control,data,background)
+    local restored=false
+    if type(data)=="string" and data~="" then
+        restored=pcall(function()
+            control:SetShortcut(Shortcut(Item,data))
+            local shortcut=control:GetShortcut()
+            if not shortcut or shortcut:GetType()~=Item or shortcut:GetData()~=data then
+                error("saved shortcut did not restore")
+            end
+        end)
+    end
+    if not restored and background then control:SetBackground(background) end
+    return restored
 end
 
 function FL_Window:Constructor()
@@ -108,10 +122,9 @@ function FL_Window:Constructor()
 	-- Create an rod field
 	self.rod = self:AddField(Quickslot, nil, {x=115,y=40}, {x=Qsize,y=Qsize} )
 	Blank = self.rod:GetShortcut()
-	if Totals.rod then self.rod:SetShortcut( Shortcut(Item,Totals.rod) ) 
-	else self.rod:SetBackground("Dusk/FishingLog/Rod.tga") end
+	FL_RestoreSavedShortcut(self.rod,Totals.rod,"Dusk/FishingLog/Rod.tga")
 	self.rod.ShortcutChanged = function( sender, args )
-		Totals.rod = FL_Shortcut(sender,FL_Lang=="FR" and "Canne à pêche" or "Fishing rod",nil,nil)
+		Totals.rod = FL_Shortcut(sender,FL_Lang=="FR" and "Canne à pêche" or "Fishing rod")
 	end
 
 	-- Create a fishing label
@@ -129,8 +142,7 @@ function FL_Window:Constructor()
 
 	-- Create an weapon field, weapon slot=16, cat=104
 	self.weapon = self:AddField(Quickslot, nil, {x=115,y=90}, {x=Qsize,y=Qsize} )
-	if Totals.wpn then self.weapon:SetShortcut( Shortcut(Item,Totals.wpn) ) 
-	else self.weapon:SetBackground("Dusk/FishingLog/Sword.tga") end
+	FL_RestoreSavedShortcut(self.weapon,Totals.wpn,"Dusk/FishingLog/Sword.tga")
 	self.weapon.ShortcutChanged = function( sender, args )
 		Totals.wpn = FL_Shortcut(sender,FL_Lang=="FR" and "Arme" or "Weapon")
 	end
@@ -140,8 +152,7 @@ function FL_Window:Constructor()
 
 	-- Create an shield field, shield slot=17
 	self.shield = self:AddField(Quickslot, nil, {x=240,y=90}, {x=Qsize,y=Qsize} )
-	if Totals.shl then self.shield:SetShortcut( Shortcut(Item,Totals.shl) ) 
-	else self.shield:SetBackground("Dusk/FishingLog/Shield.tga") end
+	FL_RestoreSavedShortcut(self.shield,Totals.shl,"Dusk/FishingLog/Shield.tga")
 	self.shield.ShortcutChanged = function( sender, args )
 		Totals.shl = FL_Shortcut(sender,FL_Lang=="FR" and "2e emplacement" or "2nd")
 	end
@@ -222,7 +233,7 @@ end
 
 function FL_Window:SetFishingLevel(level)
     if not self.fishingLevelLabel then return end
-    local fp = FL_ToNonNegativeInteger(level)
+    local fp = FL_ToFishingLevel(level)
     self.fishingLevelLabel:SetText(UI.level..(fp~=nil and tostring(fp) or "—"))
 end
 

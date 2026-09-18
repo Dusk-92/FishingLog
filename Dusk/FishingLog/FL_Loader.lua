@@ -1,4 +1,4 @@
--- FishingLog FR7.15 runtime hardening layer.
+-- FishingLog FR9.0 legacy-runtime compatibility layer.
 -- Handles reload safety, old-save edge cases, locale-safe numeric parsing,
 -- location-key collisions, deterministic spot selection and crash-loss risk.
 
@@ -35,8 +35,8 @@ end)
 Turbine.PluginData.Load = FL711_NativeLoad
 if not FL711_LoadOK then error(FL711_LoadError) end
 
--- FL_Main keeps short local aliases for compatibility but exposes only prefixed
--- output helpers to the shared Dusk apartment.
+-- FL_Main keeps short local aliases for compatibility and exposes prefixed
+-- output helpers inside FishingLog's dedicated Apartment.
 local print,printh,printe = FL_Print,FL_PrintH,FL_PrintE
 local FL711_MainChat = Turbine.Chat.Received
 
@@ -44,7 +44,9 @@ local FL711_MainChat = Turbine.Chat.Received
 local function FL711_ClampMainWindow()
     if not FL_window then return end
     local sw,sh = Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
-    local ww,wh = FL_window:GetWidth(),FL_window:GetHeight()
+    local scale=FL_ToNumber(FL_Options and FL_Options.scale) or 1
+    local ww=math.max(1,math.floor(FL_window:GetWidth()*scale+0.5))
+    local wh=math.max(1,math.floor(FL_window:GetHeight()*scale+0.5))
     local x,y = FL_window:GetPosition()
     x = FL_ToNumber(x) or 0
     y = FL_ToNumber(y) or 0
@@ -135,7 +137,7 @@ local FL715_BadTotals = {}
 local FL715_BadTotalCount = 0
 if type(Totals)=="table" then
     if Totals.fp~=nil then
-        local fp=FL711_ToNumber(Totals.fp)
+        local fp=FL_ToFishingLevel(Totals.fp)
         if fp~=nil then
             Totals.fp=fp
         else
@@ -167,7 +169,7 @@ local FL715_BadProfs = {}
 local FL715_BadProfCount = 0
 if type(Profs)=="table" then
     for name,value in pairs(Profs) do
-        local fp=FL711_ToNumber(value)
+        local fp=FL_ToFishingLevel(value)
         if fp~=nil then
             Profs[name]=fp
         else
