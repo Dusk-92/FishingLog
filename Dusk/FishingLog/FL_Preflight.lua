@@ -1,4 +1,4 @@
--- FishingLog FR10.2 release preflight.
+-- FishingLog FR10.3 release preflight.
 -- Validates saved state before FL_Main/FL_Window, keeps localized name caches
 -- separated, validates equipment shortcuts without unstable category IDs, and
 -- guards legacy runtime paths without adding another loader layer.
@@ -72,7 +72,7 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
         end
     end
 
-    table.insert(history.entries,{version="FR10.2",data=payload})
+    table.insert(history.entries,{version="FR10.3",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
@@ -524,17 +524,17 @@ if FL8_Lang=="FR" and FL_Options and
     FL_Options.frProbeVersion=nil
     local ok=pcall(FL_AutoLocalize,FL81_NamesReset and true or false)
     if ok then
-        local frames=0
+        local probeStartedAt=Turbine.Engine.GetGameTime()
+        local probeTimeoutSeconds=60
         FL8_ProbeWatcher=Turbine.UI.Control()
         FL8_ProbeWatcher:SetWantsUpdates(true)
         FL8_ProbeWatcher.Update=function(sender,args)
-            frames=frames+1
             if FL_Options and FL_Options.frProbeVersion==3 then
                 sender:SetWantsUpdates(false)
                 FL8_ProbeWatcher=nil
                 FL_Options.fr8ProbeVersion=1
                 FL8_Save(Turbine.DataScope.Server,"FL_Options",FL_Options)
-            elseif frames>=3600 then
+            elseif Turbine.Engine.GetGameTime()-probeStartedAt>=probeTimeoutSeconds then
                 sender:SetWantsUpdates(false)
                 FL8_ProbeWatcher=nil
             end
