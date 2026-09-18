@@ -25,15 +25,15 @@ local Qsize = 34
 local Blank
 
 local UI = {
-    title="Fishing Log", rod="Fishing rod:", fish="Fish:", weapon="Weapon:", second="2nd:",
-    setloc="Set Location", listloc="List Locations", loccatch="Loc. Catches", personal="Personal Catches",
-    area="Area: none", level="Fishing level: ", regionfish="Area Fish", deeds="Fishing Deeds", helper="Fishing Guide"
+    title="Fishing Log", rod="Fishing rod:", fish="Fish:", weapon="Weapon:", second="2nd slot:",
+    setloc="Set Location", listloc="List Locations", loccatch="Caught Here", personal="Personal Totals",
+    area="Area: none", level="Fishing: level ", regionfish="Area Fish", deeds="Fishing Deeds", helper="Fishing Guide"
 }
 if FL_Lang=="FR" then
     UI = {
-        title="Carnet de pêche", rod="Canne à pêche :", fish="Pêcher :", weapon="Arme :", second="2e :",
-        setloc="Définir lieu", listloc="Liste des lieux", loccatch="Prises du lieu", personal="Mes prises",
-        area="Zone : aucune", level="Niveau de pêche : ", regionfish="Poissons région", deeds="Prouesses", helper="Guide pêche"
+        title="Carnet de pêche", rod="Canne à pêche :", fish="Pêcher :", weapon="Arme :", second="2e slot :",
+        setloc="Définir lieu", listloc="Liste des lieux", loccatch="Prises ici", personal="Totaux perso",
+        area="Zone : aucune", level="Pêche : niveau ", regionfish="Poissons zone", deeds="Prouesses", helper="Guide pêche"
     }
 end
 
@@ -104,7 +104,7 @@ function FL_Window:Constructor()
 	Turbine.UI.Lotro.Window.Constructor( self )
 
 	-- Position the window near the top center of the screen.
-	self:SetSize( 340,315 )
+	self:SetSize( 360,315 )
 --	self:SetBackColor( Turbine.UI.Color() )
 	local pos = FL_Options.pos1 or 
 		{ x=(Turbine.UI.Display.GetWidth() - self:GetWidth())/3, 
@@ -113,14 +113,20 @@ function FL_Window:Constructor()
 	self:SetText( UI.title )
 	self:SetVisible( false )
 
+	-- Match BirdingLog: proficiency line directly below the title.
+	self.fishingLevelLabel = self:AddField(Label, "", {x=30,y=27}, {x=300,y=16} )
+	self.fishingLevelLabel:SetForeColor( whiteColor )
+	self.fishingLevelLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
+	self:SetFishingLevel(Totals and Totals.fp or nil)
+
 -- Hobby:Fishing action is Type=Hobby(9), Data=0x7000EE1E
 
 	-- Create a Name field
-	self.name = self:AddField(Label, UI.rod, {x=25,y=47}, {x=90,y=16} )
+	self.name = self:AddField(Label, UI.rod, {x=42,y=57}, {x=80,y=16} )
 	self.name:SetFont(Turbine.UI.Lotro.Font.TrajanPro18)
 
 	-- Create an rod field
-	self.rod = self:AddField(Quickslot, nil, {x=115,y=40}, {x=Qsize,y=Qsize} )
+	self.rod = self:AddField(Quickslot, nil, {x=125,y=50}, {x=Qsize,y=Qsize} )
 	Blank = self.rod:GetShortcut()
 	FL_RestoreSavedShortcut(self.rod,Totals.rod,"Dusk/FishingLog/Rod.tga")
 	self.rod.ShortcutChanged = function( sender, args )
@@ -128,30 +134,30 @@ function FL_Window:Constructor()
 	end
 
 	-- Create a fishing label
-	self:AddField(Label, UI.fish, {x=190,y=45}, {x=45,y=16} )
+	self:AddField(Label, UI.fish, {x=205,y=55}, {x=75,y=16} )
 
 	-- Create an fishing field
-	self.fish = self:AddField(Quickslot, nil, {x=240,y=40}, {x=Qsize,y=Qsize} )
+	self.fish = self:AddField(Quickslot, nil, {x=285,y=50}, {x=Qsize,y=Qsize} )
 	self.fish:SetShortcut( Shortcut(Hobby,"0x7000EE1E") )
     self.fish:SetAllowDrop( false )
 	self.fish.MouseEnter = function( sender, args ) FL_TrackHover = true end
 	self.fish.MouseLeave = function( sender, args ) FL_TrackHover = false end
 
 	-- Create a weapon label
-	self:AddField(Label, UI.weapon, {x=45,y=95}, {x=70,y=16} )
+	self:AddField(Label, UI.weapon, {x=50,y=107}, {x=70,y=16} )
 
 	-- Create a weapon field
-	self.weapon = self:AddField(Quickslot, nil, {x=115,y=90}, {x=Qsize,y=Qsize} )
+	self.weapon = self:AddField(Quickslot, nil, {x=125,y=100}, {x=Qsize,y=Qsize} )
 	FL_RestoreSavedShortcut(self.weapon,Totals.wpn,"Dusk/FishingLog/Sword.tga")
 	self.weapon.ShortcutChanged = function( sender, args )
 		Totals.wpn = FL_Shortcut(sender,FL_Lang=="FR" and "Arme" or "Weapon")
 	end
 
 	-- Create a Shield label
-	self:AddField(Label, UI.second, {x=195,y=95}, {x=40,y=16} )
+	self:AddField(Label, UI.second, {x=210,y=107}, {x=70,y=16} )
 
 	-- Create an shield field, shield slot=17
-	self.shield = self:AddField(Quickslot, nil, {x=240,y=90}, {x=Qsize,y=Qsize} )
+	self.shield = self:AddField(Quickslot, nil, {x=285,y=100}, {x=Qsize,y=Qsize} )
 	FL_RestoreSavedShortcut(self.shield,Totals.shl,"Dusk/FishingLog/Shield.tga")
 	self.shield.ShortcutChanged = function( sender, args )
 		Totals.shl = FL_Shortcut(sender,FL_Lang=="FR" and "2e emplacement" or "2nd")
@@ -160,7 +166,7 @@ function FL_Window:Constructor()
 
 	-- Location button: keep the proven working LOTRO Quickslot Alias overlay.
 	-- The Quickslot covers the whole button and receives the real player click.
-	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=140}, {x=125,y=20} )
+	self.locButton = self:AddField(Button, UI.setloc, {x=30,y=150}, {x=135,y=20} )
 
 	local slot = Turbine.UI.Lotro.Quickslot()
 	slot:SetParent( self.locButton )
@@ -175,51 +181,45 @@ function FL_Window:Constructor()
     -- Quickslot. Hide only that bleed in the empty gap below the button.
     local aliasBleedMask = Turbine.UI.Control()
     aliasBleedMask:SetParent( self )
-    aliasBleedMask:SetPosition( 28,160 )
-    aliasBleedMask:SetSize( 130,8 )
+    aliasBleedMask:SetPosition( 28,170 )
+    aliasBleedMask:SetSize( 140,8 )
     aliasBleedMask:SetBackColor( backColor )
     aliasBleedMask:SetMouseVisible( false )
     aliasBleedMask:SetZOrder( 100 )
 	-- Create a Inventory listing button
-	self.listButton = self:AddField(Button, UI.listloc, {x=175,y=140}, {x=135,y=20} )
+	self.listButton = self:AddField(Button, UI.listloc, {x=195,y=150}, {x=135,y=20} )
 	self.listButton.Click = function( sender,args )
         FL_Command:Execute("fll","list")
 	end
 
 	-- Create a catch listing button
-	self.locationCatchButton = self:AddField(Button, UI.loccatch, {x=30,y=170}, {x=125,y=20} )
+	self.locationCatchButton = self:AddField(Button, UI.loccatch, {x=30,y=210}, {x=135,y=20} )
 	self.locationCatchButton.Click = function( sender,args )
         FL_Command:Execute("fll","last")
 	end
 
 	-- Create a catch listing button
-	self.personalCatchButton = self:AddField(Button, UI.personal, {x=175,y=170}, {x=135,y=20} )
+	self.personalCatchButton = self:AddField(Button, UI.personal, {x=195,y=210}, {x=135,y=20} )
 	self.personalCatchButton.Click = function( sender,args )
         FL_Command:Execute("fl","catch")
 	end
 
-    -- Fishing is not organised exactly like birding: keep spot tracking, but
-    -- expose the current game area and reliable deed-fish information.
-    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=198}, {x=280,y=18} )
+    -- Keep the selected fishing spot visible without breaking the shared grid.
+    self.areaLabel = self:AddField(Label, UI.area, {x=30,y=240}, {x=300,y=18} )
     self.areaLabel:SetForeColor( whiteColor )
     self.areaLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
 
-    self.fishingLevelLabel = self:AddField(Label, "", {x=30,y=218}, {x=280,y=18} )
-    self.fishingLevelLabel:SetForeColor( whiteColor )
-    self.fishingLevelLabel:SetTextAlignment( Turbine.UI.ContentAlignment.MiddleCenter )
-    self:SetFishingLevel(Totals and Totals.fp or nil)
-
-    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=245}, {x=125,y=20} )
+    self.regionFishButton = self:AddField(Button, UI.regionfish, {x=30,y=180}, {x=135,y=20} )
     self.regionFishButton.Click = function( sender,args )
         FL_Command:Execute("fl","zone")
     end
 
-    self.deedsButton = self:AddField(Button, UI.deeds, {x=175,y=245}, {x=135,y=20} )
+    self.deedsButton = self:AddField(Button, UI.deeds, {x=195,y=180}, {x=135,y=20} )
     self.deedsButton.Click = function( sender,args )
         FL_Command:Execute("fl","deeds")
     end
 
-    self.helperButton = self:AddField(Button, UI.helper, {x=30,y=275}, {x=280,y=20} )
+    self.helperButton = self:AddField(Button, UI.helper, {x=30,y=270}, {x=300,y=20} )
     self.helperButton.Click = function( sender,args )
         FL_HelperOpen()
     end
@@ -239,17 +239,25 @@ end
 function FL_Window:SetFishingLevel(level)
     if not self.fishingLevelLabel then return end
     local fp = FL_ToFishingLevel(level)
-    self.fishingLevelLabel:SetText(UI.level..(fp~=nil and tostring(fp) or "—"))
+    if fp==nil then
+        self.fishingLevelLabel:SetText(FL_Lang=="FR" and "Pêche : niveau inconnu" or "Fishing: unknown level")
+        return
+    end
+    local text = UI.level..tostring(fp)
+    local title = FL_Guide and FL_Guide.GetSkillTitle and FL_Guide.GetSkillTitle(fp) or nil
+    if type(title)=="string" and title~="" then text = text.." — "..title end
+    self.fishingLevelLabel:SetText(text)
 end
 
 FL_window = FL_Window()
 
--- Set Escape action
-FL_window:SetWantsKeyEvents( true )
-FL_window.KeyDown = function(sender, args)
-	if( args.Action == Turbine.UI.Lotro.Action.Escape and not FL_Options.esc ) then
-		FL_window:SetVisible( false )
-	-- elseif Track and args.Control then 
-	-- 	FL_window.fish:MouseDown(sender, args)
-	end
+-- Match BirdingLog: only listen for keys while the window is visible.
+FL_window:SetWantsKeyEvents(false)
+FL_window.VisibleChanged = function(sender,args)
+    sender:SetWantsKeyEvents(sender:IsVisible())
+end
+FL_window.KeyDown = function(sender,args)
+    if args.Action == Turbine.UI.Lotro.Action.Escape and not FL_Options.esc then
+        FL_window:SetVisible(false)
+    end
 end
