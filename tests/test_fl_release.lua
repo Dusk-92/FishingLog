@@ -7,13 +7,15 @@ local function read(path)
 end
 
 local descriptor=read("Dusk/FishingLog.plugin")
-assert(descriptor:find("<Version>1.3-FR10.2</Version>",1,true),"descriptor version mismatch")
+assert(descriptor:find("<Version>1.3-FR10.3</Version>",1,true),"descriptor version mismatch")
 assert(descriptor:find('Apartment="FishingLog"',1,true),"FishingLog must use an isolated Apartment")
 
 local preflight=read("Dusk/FishingLog/FL_Preflight.lua")
-assert(preflight:find("FishingLog FR10.2 release preflight",1,true),"preflight release marker mismatch")
+assert(preflight:find("FishingLog FR10.3 release preflight",1,true),"preflight release marker mismatch")
 assert(not preflight:find("expectedCategory",1,true),"numeric equipment category validation returned")
-assert(preflight:find('version="FR10.2"',1,true),"quarantine version marker mismatch")
+assert(preflight:find('version="FR10.3"',1,true),"quarantine version marker mismatch")
+assert(preflight:find("probeTimeoutSeconds=60",1,true),"probe timeout must use real elapsed time")
+assert(not preflight:find("frames>=3600",1,true),"frame-count localization timeout returned")
 assert(preflight:find("FL8_LoadFailures",1,true),"local persistence failure guard missing")
 assert(preflight:find("math.floor(360*scale+0.5)",1,true),"preflight width is stale")
 assert(preflight:find("math.floor(315*scale+0.5)",1,true),"preflight height is stale")
