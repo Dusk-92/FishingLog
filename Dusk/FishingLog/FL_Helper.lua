@@ -65,10 +65,8 @@ local DATA_GLOBALS = {
     "datasNormalFishNames", "datasRareFishLVL", "datasRareFishNames", "datasGarbageFishNames",
     "datasMountableWallFishLVL", "datasMountableWallFishNames",
     "DatasMasterNPC", "DatasMasterNPCExactPosition", "DatasMasterNPCLocation",
-    "DatasMasterNPCCoordExact", "DatasMasterNPCCoord",
     "DatasFishingRod", "DatasFishingRodName", "DatasFishingRodLocation",
-    "DatasFishingQuests", "DatasFishingQuestsLocation", "DatasFishingQuestsLocationMap",
-    "DatasFishingQuestsCoord", "DatasFishingQuestsCoordExact"
+    "DatasFishingQuests", "DatasFishingQuestsLocation", "DatasFishingQuestsLocationMap"
 }
 
 local function safeArray(value)
