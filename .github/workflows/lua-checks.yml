@@ -8,7 +8,17 @@ jobs:
   syntax-and-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Persistence isolation guards
+        run: |
+          grep -F '<Configuration Apartment="FishingLog"/>' Dusk/FishingLog.plugin
+          grep -F 'function FL_PluginDataLoad' Dusk/FishingLog/FL_Preflight.lua
+          grep -F 'function FL_PluginDataSave' Dusk/FishingLog/FL_Preflight.lua
+          grep -F 'PluginDataLoadChecked' Dusk/Common/__init__.lua
+          ! grep -F 'function Turbine.PluginData.Load' Dusk/Common/__init__.lua
+          ! grep -F 'function Turbine.PluginData.Save' Dusk/Common/__init__.lua
+          ! grep -F 'Turbine.PluginData.Load(' Dusk/FishingLog/FL_Main.lua
+          ! grep -F 'Turbine.PluginData.Save(' Dusk/FishingLog/FL_Main.lua
       - name: Install Lua 5.1
         run: |
           sudo apt-get update
