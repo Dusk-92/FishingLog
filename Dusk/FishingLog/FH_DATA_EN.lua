@@ -370,30 +370,7 @@
 					"West Rohan",
 					"West Rohan",
 					"Western Gondor"};
-	DatasMasterNPCCoordExact = {"430", "380", -- bree
-						"450", "310", -- ered luin
-						"570", "420", -- the shire
-						"260", "550", -- the shire
-						"630", "380", -- fondcombe
-						"675", "160", -- moria
-						"430", "300", -- galtrev
-						"730", "500", -- East rohan
-						"460", "510", -- forloi
-						"320", "440", -- west rohan
-						"290", "590", -- west rohan
-						"645", "450"}; -- western gondor
-	DatasMasterNPCCoord = {"525", "535",
-						"290", "70",
-						"570", "420",
-						"270", "560",
-						"850", "220", -- fondcombe
-						"490", "280",
-						"450", "360",
-						"400", "440",
-						"640", "480",
-						"320", "440",
-						"470", "440",
-						"470", "600"};
+ -- western gondor
 
 	DatasFishingRod = {"0x410DD1B3",
 						"0x410DD1B3",
@@ -471,39 +448,5 @@
 									"West Gondor",
 									"Vales of Anduin",
 									"Vales of Anduin"};
-	DatasFishingQuestsCoord = {"270", "560",
-						"525", "535",
-						"290", "70",
-						"850", "330",
-						"450", "490",
-						"850", "260",
-						"540", "140",
-						"450", "360",
-						"400", "440",
-						"400", "440",
-						"400", "440",
-						"400", "440",
-						"470", "440",
-						"470", "440",
-						"470", "600",
-						"720", "455",
-						"720", "455"};
-	DatasFishingQuestsCoordExact = {"270", "560",
-						"430", "380", -- bree
-						"450", "310", -- salle des rois
-						"630", "380", -- salle du feu
-						"450", "490",
-						"850", "260",
-						"540", "140", -- sury - kala
-						"430", "300", -- galtrev
-						"730", "500", -- neigebronne
-						"730", "500", -- neigebronne
-						"730", "500", -- neigebronne
-						"730", "500", -- neigebronne
-						"430", "430", -- edoras -- to be done
-						"290", "590", -- quai edoras
-						"645", "450", -- dol amroth
-						"720", "455",
-						"720", "455"};
 
 ----
