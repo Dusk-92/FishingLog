@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR9.1**.
+Version actuelle : **1.3-FR10.0**.
 
 ## Installation
 
@@ -33,12 +33,13 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active ;
 - **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.
 - **FR9.0** : consolidation du gros audit — niveau de pêche strictement borné à 0–200 et restauré depuis `FL_Profs`, détection de progression durcie, Quickslots non destructifs, clamp corrigé à petite échelle, données de quêtes festival corrigées, suppression du bypass Shift devenu inutile et tests de régression étendus.
-- **FR9.1** : consolidation finale — réconciliation du niveau avec conservation de la valeur la plus élevée, parser de progression FR/EN/DE testable, format Carry-all `Gathered` couvert, suppression du dernier monkeypatch PluginData, titres de pêche unifiés, options/icône durcies et invariants CI renforcés.
+- **FR9.1** : consolidation finale — réconciliation du niveau avec conservation de la valeur la plus élevée, parser de progression FR/EN/DE testable, format Carry-all `Gathered` couvert, suppression du dernier monkeypatch PluginData, titres de pêche unifiés, options/icône durcies et invariants CI renforcés.\n- **FR10.0** : fusion du guide **FishingHelper** dans FishingLog avec une fenêtre dédiée et 7 catégories : cannes, maîtres du hobby, quêtes, poissons normaux, poissons rares, poissons trophées/muraux et ordures. Les données FR/EN/DE de FishingHelper sont intégrées sous licence MIT et restent isolées du cœur de FishingLog.
 
 ## Commandes utiles
 
 - `/fl` : informations de pêche
 - `/fl catch` : prises personnelles
+- `/fl guide` : ouvrir le guide FishingHelper intégré
 - `/fl deeds` : progression des prouesses suivies
 - `/fl zone` : poissons de prouesse connus pour la zone
 - `/fl fr` : relancer la récupération des noms français
@@ -60,6 +61,8 @@ Plugin original : **David Down** — FishingLog.
 
 Maintenance de la version LOTROInterface 1.3 : **Vinny**.
 
-Adaptation française et maintenance du fork : **Dusk-92**.
+Guide et données intégrées : **Homeopatix** — FishingHelper, sous licence MIT (licence conservée dans `Dusk/FishingLog/FishingHelper_LICENSE.txt`).
+
+Adaptation française, fusion et maintenance du fork : **Dusk-92**.
 
 Page du fork : https://github.com/Dusk-92/FishingLog
