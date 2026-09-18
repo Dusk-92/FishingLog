@@ -8,8 +8,12 @@ import "Dusk.Common"
 import "Dusk.Common.EII_ID"
 import "Dusk.FishingLog.FL_Number"
 
-local FL8_RawLoad = Turbine.PluginData.Load
-local FL8_RawSave = Turbine.PluginData.Save
+local FL8_NativeLoad = Turbine.PluginData.Load
+local FL8_NativeSave = Turbine.PluginData.Save
+local FL8_RawLoad = (Dusk.Common and Dusk.Common.PluginDataLoad) or FL8_NativeLoad
+local FL8_RawLoadChecked = Dusk.Common and Dusk.Common.PluginDataLoadChecked
+local FL8_RawSave = (Dusk.Common and Dusk.Common.PluginDataSave) or FL8_NativeSave
+local FL8_LoadFailures = {}
 local FL8_Lang =
     Turbine.Shell.IsCommand("aide") and "FR" or
     (Turbine.Shell.IsCommand("zusatzmodule") and "DE" or "EN")
@@ -28,7 +32,25 @@ local FL81_BypassPending = nil
 local FL81_ChatGuard = nil
 local FL81_PreFishingChat = nil
 
+local function FL8_Load(scope,key,callback)
+    if type(FL8_RawLoadChecked)=="function" then
+        local value,ok,err=FL8_RawLoadChecked(scope,key,callback)
+        if ok==false then FL8_LoadFailures[key]=tostring(err or "load failed") end
+        return value
+    end
+    local ok,value=pcall(FL8_RawLoad,scope,key,callback)
+    if not ok then
+        FL8_LoadFailures[key]=tostring(value)
+        return nil
+    end
+    return value
+end
+
 local function FL8_Save(scope,key,value,callback)
+    if FL8_LoadFailures[key] then
+        if callback then pcall(callback,false,"load failed earlier in this session") end
+        return false
+    end
     return FL8_RawSave(scope,key,value,callback)
 end
 
@@ -38,7 +60,7 @@ end
 
 -- Keep recent recovery snapshots without allowing an unbounded save file.
 local function FL8_AppendQuarantine(scope,key,payload,callback)
-    local previous = FL8_RawLoad(scope,key)
+    local previous = FL8_Load(scope,key)
     local history
     if type(previous)=="table" and previous.__format=="FR8-history" and
        type(previous.entries)=="table" then
@@ -57,22 +79,22 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
-    return FL8_RawSave(scope,key,history,callback)
+    return FL8_Save(scope,key,history,callback)
 end
 
 -- FR8.0 could migrate an old language-agnostic FL_Names cache into FR. Reset the
 -- FR dynamic cache once, preserve a backup, then let the client probe repopulate
 -- only the few names absent from the static French database.
 if FL8_Lang=="FR" then
-    local cacheVersion=FL8_RawLoad(Turbine.DataScope.Server,"FL_FRNamesCacheVersion")
+    local cacheVersion=FL8_Load(Turbine.DataScope.Server,"FL_FRNamesCacheVersion")
     if cacheVersion~=1 then
-        local oldCache=FL8_RawLoad(Turbine.DataScope.Server,"FL_Names_FR")
+        local oldCache=FL8_Load(Turbine.DataScope.Server,"FL_Names_FR")
         if FL8_HasEntries(oldCache) then
             FL8_AppendQuarantine(
                 Turbine.DataScope.Server,"FL_NamesFR_Quarantine",oldCache)
         end
-        FL8_RawSave(Turbine.DataScope.Server,"FL_Names_FR",{})
-        FL8_RawSave(Turbine.DataScope.Server,"FL_FRNamesCacheVersion",1)
+        FL8_Save(Turbine.DataScope.Server,"FL_Names_FR",{})
+        FL8_Save(Turbine.DataScope.Server,"FL_FRNamesCacheVersion",1)
         FL81_NamesReset=true
     end
 end
@@ -172,7 +194,7 @@ local function FL8_ValidateShortcut(saved,expectedCategory)
 end
 
 local function FL8_LoadPending(scope)
-    local pending=FL8_RawLoad(scope,"FL_PendingShortcuts")
+    local pending=FL8_Load(scope,"FL_PendingShortcuts")
     if pending==nil then return {} end
     if type(pending)=="table" then return pending end
     FL8_AppendQuarantine(scope,"FL_PendingShortcuts_Quarantine",pending)
@@ -499,17 +521,15 @@ if type(FL8_RawEII)=="function" then
     Dusk.Common.EII_ID=FL8_SafeEII
 end
 
-Turbine.PluginData.Save=function(scope,key,value,callback)
-    if key=="FL_Names" then
-        return FL8_RawSave(scope,FL8_NamesKey,value,callback)
-    end
+function FL_PluginDataSave(scope,key,value,callback)
+    local actualKey=(key=="FL_Names") and FL8_NamesKey or key
     if FL8_QuarantineKeys[key] then
         return FL8_AppendQuarantine(scope,key,value,callback)
     end
-    return FL8_RawSave(scope,key,value,callback)
+    return FL8_Save(scope,actualKey,value,callback)
 end
 
-Turbine.PluginData.Load=function(scope,key,callback)
+function FL_PluginDataLoad(scope,key,callback)
     local actualKey=(key=="FL_Names") and FL8_NamesKey or key
     local wrappedCallback
     if callback then
@@ -517,30 +537,25 @@ Turbine.PluginData.Load=function(scope,key,callback)
             callback(FL8_SanitizeLoaded(scope,key,data))
         end
     end
-
-    local value=FL8_RawLoad(scope,actualKey,wrappedCallback)
+    local value=FL8_Load(scope,actualKey,wrappedCallback)
     if value==nil and callback then return nil end
     return FL8_SanitizeLoaded(scope,key,value)
+end
+
+FL_SaveOptions=function()
+    if type(FL_Options)~="table" then return false end
+    return FL_PluginDataSave(Turbine.DataScope.Server,"FL_Options",FL_Options)
 end
 
 local FL8_OK,FL8_Error=pcall(function()
     import "Dusk.FishingLog.FL_Loader"
 end)
 
-Turbine.PluginData.Load=FL8_RawLoad
-local function FL8_RuntimeSave(scope,key,value,callback)
-    if FL8_Active and key=="FL_Names" then
-        return FL8_RawSave(scope,FL8_NamesKey,value,callback)
-    end
-    return FL8_RawSave(scope,key,value,callback)
-end
-Turbine.PluginData.Save=FL8_RuntimeSave
-
 if not FL8_OK then
     FL8_Active=false
-    if Turbine.PluginData.Save==FL8_RuntimeSave then
-        Turbine.PluginData.Save=FL8_RawSave
-    end
+    FL_PluginDataLoad=nil
+    FL_PluginDataSave=nil
+    FL_SaveOptions=nil
     if FL8_SafeEII and Dusk.Common.EII_ID==FL8_SafeEII then
         Dusk.Common.EII_ID=FL8_RawEII
     end
@@ -567,7 +582,7 @@ if FL81_BypassRodRestore and type(Totals)=="table" and Totals.rodBypass==true an
         Totals.rod=data
         local pending=FL81_BypassPending or FL8_LoadPending(Turbine.DataScope.Character)
         pending.rod=nil
-        FL8_RawSave(Turbine.DataScope.Character,"FL_PendingShortcuts",pending)
+        FL8_Save(Turbine.DataScope.Character,"FL_PendingShortcuts",pending)
         FL8_RestoredShortcutCount=FL8_RestoredShortcutCount+1
     end
 end
@@ -583,7 +598,7 @@ if FL_window and FL_window.rod and type(FL_window.rod.ShortcutChanged)=="functio
             else
                 Totals.rodBypass=nil
             end
-            FL8_RawSave(Turbine.DataScope.Character,"FL_Totals",Totals)
+            FL8_Save(Turbine.DataScope.Character,"FL_Totals",Totals)
         end
         return result
     end
@@ -616,7 +631,7 @@ end
 Turbine.Chat.Received=FL81_ChatGuard
 
 if type(Totals)=="table" then
-    FL8_RawSave(Turbine.DataScope.Character,"FL_Totals",Totals)
+    FL8_Save(Turbine.DataScope.Character,"FL_Totals",Totals)
 end
 
 if FL8_Lang=="FR" and FL_Options and
@@ -634,7 +649,7 @@ if FL8_Lang=="FR" and FL_Options and
                 sender:SetWantsUpdates(false)
                 FL8_ProbeWatcher=nil
                 FL_Options.fr8ProbeVersion=1
-                FL8_RawSave(Turbine.DataScope.Server,"FL_Options",FL_Options)
+                FL8_Save(Turbine.DataScope.Server,"FL_Options",FL_Options)
             elseif frames>=3600 then
                 sender:SetWantsUpdates(false)
                 FL8_ProbeWatcher=nil
@@ -656,12 +671,12 @@ Plugins.FishingLog.Unload=function(sender,args)
     if Turbine.Chat.Received==FL81_ChatGuard then
         Turbine.Chat.Received=FL81_PreFishingChat
     end
-    if Turbine.PluginData.Save==FL8_RuntimeSave then
-        Turbine.PluginData.Save=FL8_RawSave
-    end
     if FL8_SafeEII and Dusk.Common.EII_ID==FL8_SafeEII then
         Dusk.Common.EII_ID=FL8_RawEII
     end
+    FL_PluginDataLoad=nil
+    FL_PluginDataSave=nil
+    FL_SaveOptions=nil
 
     if not ok then error(result) end
     return result
