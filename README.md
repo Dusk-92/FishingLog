@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR10.0**.
+Version actuelle : **1.3-FR10.1**.
 
 ## Installation
 
@@ -34,6 +34,7 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.
 - **FR9.0** : consolidation du gros audit — niveau de pêche strictement borné à 0–200 et restauré depuis `FL_Profs`, détection de progression durcie, Quickslots non destructifs, clamp corrigé à petite échelle, données de quêtes festival corrigées, suppression du bypass Shift devenu inutile et tests de régression étendus.
 - **FR9.1** : consolidation finale — réconciliation du niveau avec conservation de la valeur la plus élevée, parser de progression FR/EN/DE testable, format Carry-all `Gathered` couvert, suppression du dernier monkeypatch PluginData, titres de pêche unifiés, options/icône durcies et invariants CI renforcés.\n- **FR10.0** : fusion du guide **FishingHelper** dans FishingLog avec une fenêtre dédiée et 7 catégories : cannes, maîtres du hobby, quêtes, poissons normaux, poissons rares, poissons trophées/muraux et ordures. Les données FR/EN/DE de FishingHelper sont intégrées sous licence MIT et restent isolées du cœur de FishingLog.
+- **FR10.1** : interface principale harmonisée avec BirdingLog : même largeur, mêmes positions d’équipement, grille 2×3 de boutons 135×20, libellés cohérents (`Poissons zone`, `Prises ici`, `Totaux perso`) et bouton `Guide pêche` aligné sur toute la largeur.
 
 ## Commandes utiles
 
