@@ -200,11 +200,19 @@ local green = Turbine.UI.Color(0.35, 0.95, 0.35)
 local dark = Turbine.UI.Color(0.06, 0.06, 0.06)
 
 local function centerAndScale(window)
-    local scale = FL_ToNumber(FL_Options and FL_Options.scale) or 1
-    scale = math.max(0.5,math.min(2,scale))
-    window:SetScale(scale)
+    local requestedScale = FL_ToNumber(FL_Options and FL_Options.scale) or 1
+    requestedScale = math.max(0.5,math.min(2,requestedScale))
+
+    -- GoldWindow is not guaranteed to expose SetScale on every LOTRO client.
+    -- Apply it only when available; otherwise keep the window at native scale.
+    local appliedScale = 1
+    if type(window.SetScale)=="function" then
+        local ok = pcall(function() window:SetScale(requestedScale) end)
+        if ok then appliedScale = requestedScale end
+    end
+
     local sw,sh = Turbine.UI.Display.GetWidth(),Turbine.UI.Display.GetHeight()
-    local ww,wh = window:GetWidth()*scale,window:GetHeight()*scale
+    local ww,wh = window:GetWidth()*appliedScale,window:GetHeight()*appliedScale
     window:SetPosition(
         math.max(0,math.floor((sw-ww)/2)),
         math.max(0,math.floor((sh-wh)/2))
@@ -371,7 +379,9 @@ function FL_HelperOpen(category)
     if category then FL_helperWindow:ShowCategory(category) else FL_helperWindow:Refresh() end
     centerAndScale(FL_helperWindow)
     FL_helperWindow:SetVisible(true)
-    FL_helperWindow:SetZOrder(3)
+    if type(FL_helperWindow.SetZOrder)=="function" then
+        pcall(function() FL_helperWindow:SetZOrder(3) end)
+    end
 end
 
 function FL_HelperRefresh()
