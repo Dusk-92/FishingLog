@@ -21,4 +21,11 @@ expect(FL_ToNonNegativeInteger(-1),nil,"negative integer")
 expect(FL_ToNonNegativeInteger(2.5),nil,"fractional count")
 expect(FL_ToNonNegativeInteger("1e309"),nil,"overflow")
 
+expect(FL_ToFishingLevel(0),0,"fishing level zero")
+expect(FL_ToFishingLevel("28"),28,"fishing level string")
+expect(FL_ToFishingLevel(200),200,"fishing level cap")
+expect(FL_ToFishingLevel(201),nil,"fishing level above cap")
+expect(FL_ToFishingLevel(-1),nil,"fishing level negative")
+expect(FL_ToFishingLevel(28.5),nil,"fishing level fractional")
+
 print("FishingLog numeric tests: OK")

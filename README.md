@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR8.5**.
+Version actuelle : **1.3-FR9.0**.
 
 ## Installation
 
@@ -32,6 +32,7 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - **FR8.2** : l’icône flottante utilise la couche UI normale (`ZOrder 0`) comme TravelRef et LOTRO Events, afin que la carte et les panneaux natifs LOTRO puissent passer devant ;
 - **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active ;
 - **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.
+- **FR9.0** : consolidation du gros audit — niveau de pêche strictement borné à 0–200 et restauré depuis `FL_Profs`, détection de progression durcie, Quickslots non destructifs, clamp corrigé à petite échelle, données de quêtes festival corrigées, suppression du bypass Shift devenu inutile et tests de régression étendus.
 
 ## Commandes utiles
 
@@ -46,11 +47,11 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 
 ## Limite de l’API LOTRO
 
-FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR8.4 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
+FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR9.0 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
 
 ## Qualité / tests
 
-Le dépôt contient désormais un workflow GitHub Actions qui vérifie la syntaxe Lua des fichiers du plugin et exécute les tests purs de `FL_Number.lua` (point/virgule, `NaN`, infinis, entiers et valeurs invalides).
+Le workflow GitHub Actions vérifie les gardes d’isolation/persistance, la syntaxe Lua de tout le plugin et exécute les tests purs de régression : conversions numériques, borne 0–200 de la maîtrise, données critiques de quêtes et invariants de release.
 
 ## Crédits
 

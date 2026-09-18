@@ -35,3 +35,10 @@ function FL_ToNonNegativeInteger(value)
     if n==nil or n<0 or n~=math.floor(n) then return nil end
     return n
 end
+
+-- Fishing hobby proficiency is bounded by LOTRO to 0..200.
+function FL_ToFishingLevel(value)
+    local n=FL_ToNonNegativeInteger(value)
+    if n==nil or n>200 then return nil end
+    return n
+end

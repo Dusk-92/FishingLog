@@ -20,9 +20,9 @@ end
 
 import "Dusk.FishingLog.FL_Guide"
 
--- Prefix the public output helpers so FishingLog can safely share the Dusk
--- apartment with BirdingLog and other Dusk plugins. Keep short aliases local
--- to this file so the legacy code below does not leak generic globals.
+-- Prefix public output helpers and keep short aliases local. FR9.0 also runs
+-- FishingLog in a dedicated Apartment, so legacy globals cannot collide with
+-- TravelRef/BirdingLog.
 function FL_Print(text) Turbine.Shell.WriteLine("<rgb=#00FFFF>FL:</rgb> "..tostring(text)) end
 function FL_PrintH(text) FL_Print("<rgb=#00FF00>"..text.."</rgb>") end
 function FL_PrintE(text) FL_Print("<rgb=#FF6040>"..(FL_Lang=="FR" and "Erreur : " or "Error: ")..text.."</rgb>") end
@@ -148,9 +148,33 @@ if type(Locs) ~= "table" then Locs = {} end
 Profs = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_Profs")
 if type(Profs) ~= "table" then Profs = {} end
 Totals = FL_PluginDataLoad(Turbine.DataScope.Character,"FL_Totals")
-if type(Totals) ~= "table" then 
-	Totals = {} 
-	print(FL_Lang=="FR" and "Nouveau carnet de pêche créé." or "Created new fishing record")
+if type(Totals) ~= "table" then
+    Totals = {}
+    print(FL_Lang=="FR" and "Nouveau carnet de pêche créé." or "Created new fishing record")
+end
+
+-- Resolve the current character before building the window. A valid server-side
+-- proficiency can restore a missing character-side Totals.fp.
+local player = Turbine.Gameplay.LocalPlayer.GetInstance()
+local pname = player:GetName()
+local totalsFp = FL_ToFishingLevel(Totals.fp)
+local profFp = FL_ToFishingLevel(Profs[pname])
+local totalsChanged,profsChanged = false,false
+if totalsFp~=nil then
+    Totals.fp=totalsFp
+    if profFp~=totalsFp then
+        Profs[pname]=totalsFp
+        profsChanged=true
+    end
+elseif profFp~=nil then
+    Totals.fp=profFp
+    totalsChanged=true
+end
+if totalsChanged then
+    FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
+end
+if profsChanged then
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs",Profs)
 end
 
 import "Dusk.FishingLog.FL_Window"
@@ -165,31 +189,35 @@ local function pos(n0,ls,os)
 	return (ln + math.fmod(on,20)/20 - n0)/10
 end
 
--- Save player name for later use
-local player = Turbine.Gameplay.LocalPlayer.GetInstance()
-local pname = player:GetName()
-
 local Chat = Turbine.Chat.Received
 Turbine.Chat.Received = function (sender,args)
 	if Chat then Chat(sender,args) end
 	local msg = args.Message
 	if not msg then return end
 
-	-- English has a fixed message; localized clients use translated hobby text.
-	local fp = msg:match(fpPat)
-	if not fp and args.ChatType==Turbine.ChatType.Advancement then
-		local low = string.lower(msg)
-		if low:find("fishing",1,true) or low:find("pêche",1,true) or
-		   low:find("peche",1,true) or low:find("angeln",1,true) then
-			fp = msg:match("(%d+)")
+	-- Proficiency is accepted only from the Advancement channel. English uses
+	-- the exact LOTRO sentence; localized clients keep the hobby-keyword fallback.
+	local fp
+	if args.ChatType==Turbine.ChatType.Advancement then
+		fp = msg:match(fpPat)
+		if not fp then
+			local low = string.lower(msg)
+			if low:find("fishing",1,true) or low:find("pêche",1,true) or
+			   low:find("peche",1,true) or low:find("angeln",1,true) then
+				fp = msg:match("(%d+)")
+			end
 		end
 	end
-	if fp then
-		fp = FL_ToNonNegativeInteger(fp) or fp
-		Totals.fp = fp
-		Profs[pname] = fp
-		if FL_window and FL_window.SetFishingLevel then FL_window:SetFishingLevel(fp) end
-		return
+	fp = FL_ToFishingLevel(fp)
+	if fp~=nil then
+		local previous=FL_ToFishingLevel(Totals.fp)
+		-- A proficiency-increased message must never move the saved level backwards.
+		if previous==nil or fp>=previous then
+			Totals.fp = fp
+			Profs[pname] = fp
+			if FL_window and FL_window.SetFishingLevel then FL_window:SetFishingLevel(fp) end
+			return
+		end
 	end
 
 	if args.ChatType==Turbine.ChatType.SelfLoot then
@@ -297,7 +325,7 @@ local function FL_PrintRegionGuide()
         return
     end
     print((FL_Lang=="FR" and "Groupe : " or "Group: ")..(FL_Lang=="FR" and g.titleFR or g.titleEN))
-    local fp = FL_ToNumber(Totals.fp)
+    local fp = FL_ToFishingLevel(Totals.fp)
     local caught = 0
     for _,f in ipairs(g.fish) do
         local n = FL_ToNumber(Totals[f.id] or 0) or 0
@@ -324,7 +352,7 @@ local function FL_PrintDeedSummary()
         local extra = d.key=="lake" and (FL_Lang=="FR" and " + visite Ville du Lac" or " + visit Lake-town") or ""
         print(d.fr.." : "..n.."/"..#d.ids..extra)
     end
-    local fp = FL_ToNumber(Totals.fp)
+    local fp = FL_ToFishingLevel(Totals.fp)
     if fp then
         print((FL_Lang=="FR" and "Maîtrise enregistrée : " or "Recorded proficiency: ")..fp.."/200")
         local nextTitle=nil
@@ -353,9 +381,10 @@ function FL_Command:GetHelp() return Dusk.Common.Help(help,"help") end
 
 printh(FLv..(FL_Lang=="FR" and ", données chargées." or ", data loaded."))
 
-if Totals.fp then
-	if not Profs[pname] then Profs[pname] = Totals.fp end
-	print((FL_Lang=="FR" and "Dernière maîtrise de pêche enregistrée : " or "Last saved fishing proficiency is ")..Totals.fp)
+local savedFp=FL_ToFishingLevel(Totals.fp)
+if savedFp~=nil then
+    print((FL_Lang=="FR" and "Dernière maîtrise de pêche enregistrée : " or
+        "Last saved fishing proficiency is ")..savedFp)
 end
 
 function FL_Command:Execute( cmd,args )
@@ -444,7 +473,7 @@ function FL_Command:Execute( cmd,args )
     if args=="" then
 		local fp = Totals.fp
 		if fp then 
-			local s,fp = '', FL_ToNumber(fp)
+			local s,fp = '', FL_ToFishingLevel(fp)
             if not fp then print(FL_Lang=="FR" and "Maîtrise de pêche invalide." or "Invalid fishing proficiency.") return end
 			if fp>9 then
 				local p = math.floor(fp/50)+1
