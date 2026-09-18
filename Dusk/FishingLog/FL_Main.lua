@@ -55,11 +55,11 @@ local function FL_DisplayLocKey(key)
     return key:match("^%d+;(.+)$") or key
 end
 
-FL_Options = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_Options")
+FL_Options = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_Options")
 if not FL_Options then FL_Options = {} end
 
 -- Cache localized catch names learned directly from LOTRO loot links.
-FL_Names = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_Names")
+FL_Names = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_Names")
 if type(FL_Names) ~= "table" then FL_Names = {} end
 for id,name in pairs(FL_Names) do
     if ID[id] and (not ID[id].ln or ID[id].ln=="") and type(name)=="string" and name~="" then ID[id].ln = name end
@@ -113,8 +113,8 @@ function FL_AutoLocalize(force)
                 sender:SetWantsUpdates(false)
                 FL_AutoFRBusy = false
                 FL_Options.frProbeVersion = 3
-                Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Names",FL_Names)
-                Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Options",FL_Options)
+                FL_PluginDataSave(Turbine.DataScope.Server,"FL_Names",FL_Names)
+                FL_PluginDataSave(Turbine.DataScope.Server,"FL_Options",FL_Options)
                 local localized,total = 0,0
                 for _,entry in pairs(ID) do
                     total = total + 1
@@ -143,11 +143,11 @@ end
 
 local FLv = "Fishing Log "..Plugins["FishingLog"]:GetVersion()
 
-Locs = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_Locs")
+Locs = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_Locs")
 if type(Locs) ~= "table" then Locs = {} end
-Profs = Turbine.PluginData.Load(Turbine.DataScope.Server,"FL_Profs")
+Profs = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_Profs")
 if type(Profs) ~= "table" then Profs = {} end
-Totals = Turbine.PluginData.Load(Turbine.DataScope.Character,"FL_Totals")
+Totals = FL_PluginDataLoad(Turbine.DataScope.Character,"FL_Totals")
 if type(Totals) ~= "table" then 
 	Totals = {} 
 	print(FL_Lang=="FR" and "Nouveau carnet de pêche créé." or "Created new fishing record")
@@ -561,11 +561,11 @@ end
 
 Plugins.FishingLog.Unload = function(sender,args)
     if FL_SaveIconPosition then FL_SaveIconPosition() end
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Options",FL_Options)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Locs",Locs)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Profs",Profs)
-    Turbine.PluginData.Save(Turbine.DataScope.Server,"FL_Names",FL_Names)
-    Turbine.PluginData.Save(Turbine.DataScope.Character,"FL_Totals",Totals)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Options",FL_Options)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Locs",Locs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs",Profs)
+    FL_PluginDataSave(Turbine.DataScope.Server,"FL_Names",FL_Names)
+    FL_PluginDataSave(Turbine.DataScope.Character,"FL_Totals",Totals)
     print(FL_Lang=="FR" and "Carnet de pêche enregistré." or "Fishing record saved.")
 end
 
