@@ -185,6 +185,7 @@ if profsChanged then
     FL_PluginDataSave(Turbine.DataScope.Server,"FL_Profs",Profs)
 end
 
+import "Dusk.FishingLog.FL_Helper"
 import "Dusk.FishingLog.FL_Window"
 import "Dusk.FishingLog.FL_Icon"
 
@@ -482,6 +483,10 @@ function FL_Command:Execute( cmd,args )
 		else print(FL_Lang=="FR" and "Maîtrise de pêche inconnue." or "Unknown fishing proficiency.") end
 		return
 	end
+    if args=="guide" or args=="helper" then
+        FL_HelperOpen()
+        return
+    end
     if args=="zone" or args=="region" then
         FL_PrintRegionGuide()
         return
@@ -611,6 +616,7 @@ help = {
 		[" "] = "Display fishing proficiency.",
 		["<link>"] = "Display item details.",
 		catch = "List fishing catch records.",
+        guide = "Open the integrated FishingHelper guide.",
         zone = "List known deed fish for the current fishing area.",
         deeds = "Show FishingLog fishing-deed progress.",
         ["deed <name>"] = "Show details for a fishing deed.",
@@ -646,6 +652,7 @@ if FL_Lang=="FR" then
             [" "] = "Afficher la maîtrise de pêche.",
             ["<lien>"] = "Afficher les détails d’un objet.",
             catch = "Afficher l’historique des prises.",
+            guide = "Ouvrir le guide FishingHelper intégré.",
             zone = "Lister les poissons de prouesse connus pour la zone actuelle.",
             deeds = "Afficher la progression des prouesses suivie par FishingLog.",
             ["deed <nom>"] = "Afficher le détail d’une prouesse (dard, esturgeon, truite, lac, saumon).",
