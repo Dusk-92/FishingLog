@@ -1,4 +1,4 @@
--- FishingLog FR9.0 legacy-runtime compatibility layer.
+-- FishingLog FR10.2 legacy-runtime compatibility layer.
 -- Handles reload safety, old-save edge cases, locale-safe numeric parsing,
 -- location-key collisions, deterministic spot selection and crash-loss risk.
 
