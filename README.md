@@ -1,76 +1,239 @@
-# FishingLog — adaptation française
+# 🎣 FishingLog
 
-**FishingLog 1.3-FR10.2** est une adaptation française et modernisée du plugin FishingLog de David Down pour *The Lord of the Rings Online*.
+Carnet de pêche pour **The Lord of the Rings Online**, avec suivi des prises, progression des prouesses et guide de pêche intégré.
 
-La FR10.2 réunit désormais le **carnet de pêche** et les fonctions utiles de **FishingHelper** dans un seul plugin.
+**🌍 Langues / Languages / Sprachen :** 🇫🇷 Français · 🇬🇧 English · 🇩🇪 Deutsch
 
-## Installation
+---
 
-Copier le dossier `Dusk` dans :
+## 🇫🇷 Français
 
-`Documents/The Lord of the Rings Online/Plugins/`
+### 📖 Présentation
 
-Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
+**FishingLog** est une adaptation modernisée du plugin de David Down. Cette version réunit le carnet de pêche historique et les fonctions utiles de **FishingHelper** dans un seul plugin.
 
-## Fonctions principales
+### ✨ Fonctionnalités
 
-- suivi des prises par ID d'objet, indépendant de la langue du message de butin ;
-- lieux de pêche enregistrés et compteurs par lieu ;
-- niveau de pêche et titres du hobby ;
-- fenêtre **Prouesses** avec poissons obtenus/manquants ;
-- **Guide pêche** intégré : cannes, maîtres du hobby, quêtes, poissons normaux, poissons rares, trophées et ordures ;
-- noms français canoniques de FishingLog prioritaires sur les anciennes traductions FishingHelper ;
-- guide FR / EN / DE ;
-- icône déplaçable ;
-- sauvegardes durcies, récupération des anciennes données et quarantaines bornées ;
-- compatibilité avec les Carry-alls ;
-- interface principale harmonisée avec BirdingLog ;
-- options d'échelle et de touche Échap appliquées aussi aux fenêtres Guide et Prouesses.
+- Suivi des prises par identifiant d’objet LOTRO.
+- Compteurs et lieux de pêche enregistrés.
+- Niveau de pêche et titres du loisir.
+- Fenêtre **Prouesses** avec poissons obtenus et manquants.
+- **Guide pêche** intégré : cannes, maîtres du loisir, quêtes, poissons normaux, poissons rares, trophées et objets indésirables.
+- Noms français canoniques prioritaires.
+- Compatibilité avec les Carry-alls.
+- Interface harmonisée avec BirdingLog.
+- Sauvegardes renforcées et récupération des anciennes données.
+- Interface et guide FR / EN / DE.
 
-## Commandes
+### 📦 Installation
 
-- `/fl` : niveau et informations de pêche ;
-- `/fl catch` : prises personnelles ;
-- `/fl guide` : ouvrir le Guide pêche ;
-- `/fl deeds` : résumé texte des prouesses ;
-- `/fl deed <nom>` : détail texte d'une prouesse ;
-- `/fl zone` : poissons de prouesse connus pour la zone active ;
-- `/fl fr` : relancer la récupération des noms français depuis LOTRO ;
-- `/fll list` : lieux enregistrés ;
-- `/fll last` : prises du lieu actif ;
-- `/flw` : ouvrir la fenêtre principale.
+Copie le dossier **Dusk** dans :
 
-Le bouton **Prouesses** de l'interface ouvre la fenêtre graphique. Les commandes texte historiques restent disponibles pour compatibilité.
+```text
+Documents\The Lord of the Rings Online\Plugins\
+```
 
-## Limites de l'API LOTRO
+Puis en jeu :
 
-FishingLog reconnaît les prises grâce aux IDs présents dans les messages `SelfLoot`. L'API Lua de LOTRO ne permet pas de déterminer de manière totalement fiable si certains objets génériques proviennent précisément d'un lancer de pêche.
+```text
+/plugins refresh
+/plugins load FishingLog
+```
 
-De même, FishingLog ne peut pas lire directement l'état du journal des prouesses. La fenêtre Prouesses indique donc la progression reconstruite à partir des prises enregistrées par le plugin. Pour **Maître du lac**, la visite de la Ville du Lac doit être vérifiée dans le journal du jeu.
+### 🎮 Utilisation
 
-## Qualité / tests
+FishingLog enregistre les prises reconnues pendant tes sessions de pêche. La fenêtre principale permet de consulter le niveau, les prises et les lieux ; les boutons **Prouesses** et **Guide pêche** ouvrent les vues dédiées.
 
-GitHub Actions contrôle à chaque changement :
+### ⌨️ Commandes
 
-- l'isolation et la persistance du plugin ;
-- la syntaxe Lua 5.1 de tous les fichiers ;
-- les conversions numériques et le niveau de pêche 0–200 ;
-- le parsing des messages de progression et de butin ;
-- les données critiques des quêtes ;
-- les données de prouesses ;
-- la cohérence des bases FishingHelper FR / EN / DE ;
-- la correspondance entre les listes FishingHelper et les IDs canoniques FishingLog ;
-- les invariants de release.
+- `/fl` — niveau et informations de pêche.
+- `/fl catch` — prises personnelles.
+- `/fl guide` — ouvrir le Guide pêche.
+- `/fl deeds` — résumé texte des prouesses.
+- `/fl deed <nom>` — détail texte d’une prouesse.
+- `/fl zone` — poissons de prouesse connus pour la zone active.
+- `/fl fr` — relancer la récupération des noms français.
+- `/fll list` — afficher les lieux enregistrés.
+- `/fll last` — afficher les prises du lieu actif.
+- `/flw` — ouvrir la fenêtre principale.
 
-## Crédits
+### ⚙️ Sauvegardes & réglages
 
-- **David Down** — auteur original de FishingLog ;
-- **Vinny** — maintenance de la version LOTROInterface 1.3 ;
-- **Homeopatix** — auteur de FishingHelper, dont les données utiles sont intégrées sous licence MIT ;
-- **Dusk-92** — adaptation française, fusion et maintenance de ce fork.
+FishingLog possède son propre espace Lua et protège les données historiques, les prises, les lieux et les réglages. Les fenêtres Guide et Prouesses suivent également les options d’échelle et de fermeture avec Échap.
 
-La licence FishingHelper est conservée dans `Dusk/FishingLog/FishingHelper_LICENSE.txt`.
+### 🌍 Langues
 
-## Historique
+L’interface et le guide sont disponibles en **français, anglais et allemand**.
 
-Voir [CHANGELOG.md](CHANGELOG.md).
+### ⚠️ Limites / notes
+
+L’API Lua LOTRO ne permet pas de déterminer de façon totalement fiable si certains objets génériques proviennent précisément d’un lancer de pêche.
+
+FishingLog ne peut pas lire directement l’état du journal des prouesses. La progression affichée est donc reconstruite à partir des prises enregistrées par le plugin. Certains objectifs non liés à une prise doivent être vérifiés dans le journal du jeu.
+
+### 🐛 Bugs & suggestions
+
+Utilise les [Issues GitHub](https://github.com/Dusk-92/FishingLog/issues).
+
+### 🙏 Crédits
+
+- **David Down** — auteur original de FishingLog.
+- **Vinny** — maintenance historique de la version LOTROInterface.
+- **Homeopatix** — auteur de FishingHelper, dont des données utiles sont intégrées.
+- **Dusk-92** — adaptation, fusion et maintenance de ce fork.
+
+---
+
+## 🇬🇧 English
+
+### 📖 Overview
+
+**FishingLog** is a modernized adaptation of David Down's plugin. This version combines the historical fishing log with useful **FishingHelper** features in a single plugin.
+
+### ✨ Features
+
+- Catch tracking using LOTRO item IDs.
+- Saved fishing locations and counters.
+- Fishing skill level and hobby titles.
+- Dedicated **Deeds** window with collected and missing fish.
+- Built-in **Fishing Guide** covering rods, hobby masters, quests, common fish, rare fish, trophies and junk.
+- Canonical French names where relevant.
+- Carry-all compatibility.
+- Interface aligned with BirdingLog.
+- Hardened saved data and legacy recovery.
+- FR / EN / DE interface and guide.
+
+### 📦 Installation
+
+Copy the **Dusk** folder into:
+
+```text
+Documents\The Lord of the Rings Online\Plugins\
+```
+
+Then in game:
+
+```text
+/plugins refresh
+/plugins load FishingLog
+```
+
+### 🎮 Usage
+
+FishingLog records recognized catches during your fishing sessions. The main window provides skill, catch and location information; the **Deeds** and **Fishing Guide** buttons open their dedicated views.
+
+### ⌨️ Commands
+
+- `/fl` — fishing skill and information.
+- `/fl catch` — personal catches.
+- `/fl guide` — open the Fishing Guide.
+- `/fl deeds` — text summary of deeds.
+- `/fl deed <name>` — text details for one deed.
+- `/fl zone` — known deed fish for the active region.
+- `/fl fr` — retry French-name discovery.
+- `/fll list` — show saved locations.
+- `/fll last` — show catches from the active location.
+- `/flw` — open the main window.
+
+### ⚙️ Saved data & settings
+
+FishingLog uses its own Lua data apartment and protects historical data, catches, locations and settings. The Guide and Deeds windows also follow scale and Escape-to-close options.
+
+### 🌍 Languages
+
+The interface and guide are available in **English, French and German**.
+
+### ⚠️ Limitations / notes
+
+The LOTRO Lua API cannot always determine with complete reliability whether some generic items came specifically from a fishing cast.
+
+FishingLog also cannot read the game's deed journal directly. Displayed deed progress is therefore reconstructed from catches recorded by the plugin. Non-catch objectives still need to be checked in the in-game journal.
+
+### 🐛 Bugs & suggestions
+
+Use [GitHub Issues](https://github.com/Dusk-92/FishingLog/issues).
+
+### 🙏 Credits
+
+- **David Down** — original FishingLog author.
+- **Vinny** — historical LOTROInterface maintenance.
+- **Homeopatix** — FishingHelper author; useful data is integrated.
+- **Dusk-92** — adaptation, merge and fork maintenance.
+
+---
+
+## 🇩🇪 Deutsch
+
+### 📖 Übersicht
+
+**FishingLog** ist eine modernisierte Anpassung des Plugins von David Down. Diese Version verbindet das historische Fangprotokoll mit nützlichen Funktionen von **FishingHelper**.
+
+### ✨ Funktionen
+
+- Erfassung von Fängen anhand interner LOTRO-Gegenstands-IDs.
+- Gespeicherte Angelorte und Zähler.
+- Angelstufe und Hobby-Titel.
+- Eigenes **Taten**-Fenster mit gefangenen und fehlenden Fischen.
+- Integrierter **Angel-Leitfaden** für Ruten, Hobby-Meister, Aufgaben, normale und seltene Fische, Trophäen und Ausschuss.
+- Kanonische französische Namen, wo relevant.
+- Carry-all-Kompatibilität.
+- Mit BirdingLog harmonisierte Oberfläche.
+- Robuste Speicherdaten und Wiederherstellung älterer Daten.
+- Oberfläche und Leitfaden auf FR / EN / DE.
+
+### 📦 Installation
+
+Den Ordner **Dusk** nach folgendem Pfad kopieren:
+
+```text
+Documents\The Lord of the Rings Online\Plugins\
+```
+
+Danach im Spiel:
+
+```text
+/plugins refresh
+/plugins load FishingLog
+```
+
+### 🎮 Verwendung
+
+FishingLog speichert erkannte Fänge während der Angelsitzungen. Das Hauptfenster zeigt Fertigkeit, Fänge und Orte; die Schaltflächen **Taten** und **Angel-Leitfaden** öffnen die jeweiligen Ansichten.
+
+### ⌨️ Befehle
+
+- `/fl` — Angelstufe und Informationen.
+- `/fl catch` — eigene Fänge.
+- `/fl guide` — Angel-Leitfaden öffnen.
+- `/fl deeds` — Textübersicht der Taten.
+- `/fl deed <name>` — Details einer Tat.
+- `/fl zone` — bekannte Taten-Fische der aktiven Region.
+- `/fl fr` — französische Namenssuche erneut starten.
+- `/fll list` — gespeicherte Orte anzeigen.
+- `/fll last` — Fänge des aktiven Ortes anzeigen.
+- `/flw` — Hauptfenster öffnen.
+
+### ⚙️ Gespeicherte Daten & Einstellungen
+
+FishingLog verwendet einen eigenen Lua-Datenbereich und schützt historische Daten, Fänge, Orte und Einstellungen. Leitfaden- und Tatenfenster folgen ebenfalls den Optionen für Skalierung und Schließen mit Escape.
+
+### 🌍 Sprachen
+
+Oberfläche und Leitfaden sind auf **Deutsch, Englisch und Französisch** verfügbar.
+
+### ⚠️ Einschränkungen / Hinweise
+
+Die LOTRO-Lua-API kann nicht immer zuverlässig feststellen, ob bestimmte allgemeine Gegenstände tatsächlich von einem Angelwurf stammen.
+
+FishingLog kann außerdem den Tatenstatus des Spiels nicht direkt lesen. Der angezeigte Fortschritt wird deshalb aus den vom Plugin erfassten Fängen rekonstruiert. Ziele ohne Fang müssen weiterhin im Spieljournal geprüft werden.
+
+### 🐛 Fehler & Vorschläge
+
+Bitte die [GitHub Issues](https://github.com/Dusk-92/FishingLog/issues) verwenden.
+
+### 🙏 Credits
+
+- **David Down** — ursprünglicher Autor von FishingLog.
+- **Vinny** — historische LOTROInterface-Wartung.
+- **Homeopatix** — Autor von FishingHelper; nützliche Daten wurden integriert.
+- **Dusk-92** — Anpassung, Zusammenführung und Wartung des Forks.
