@@ -4,35 +4,14 @@
 
 import "Dusk.Common"
 import "Dusk.FishingLog.FL_Number"
+import "Dusk.FishingLog.FL_Parse"
 
--- Validate FL_Options before FL_Main reads it. Keep the automatic FR probe
--- disabled at startup; /fl fr still forces a manual retry when wanted.
-local FL711_NativeLoad = Turbine.PluginData.Load
-local FL711_RawLoad = FL_PluginDataLoad or FL711_NativeLoad
-Turbine.PluginData.Load = function(scope,key,callback)
-    local value = FL711_RawLoad(scope,key,callback)
-    if key=="FL_Options" then
-        if type(value)~="table" then value={} end
-        value.frProbeVersion = 3
-        if value.pos1~=nil then
-            if type(value.pos1)=="table" then
-                local x,y = FL_ToNumber(value.pos1.x),FL_ToNumber(value.pos1.y)
-                if x and y then value.pos1={x=x,y=y} else value.pos1=nil end
-            else
-                value.pos1=nil
-            end
-        end
-    end
-    return value
-end
-
--- Capture the chain that existed before FishingLog. FL_Main installs its normal
--- handler on top of this chain. Always restore PluginData.Load after the import.
+-- FR8.5/FR9 moved persistence to plugin-local helpers. FL_Main no longer
+-- needs a temporary replacement of Turbine.PluginData.Load during import.
 local FL711_PreviousChat = Turbine.Chat.Received
 local FL711_LoadOK,FL711_LoadError = pcall(function()
     import "Dusk.FishingLog.FL_Main"
 end)
-Turbine.PluginData.Load = FL711_NativeLoad
 if not FL711_LoadOK then error(FL711_LoadError) end
 
 -- FL_Main keeps short local aliases for compatibility and exposes prefixed
@@ -256,7 +235,6 @@ end
 FL_ChatGeneration = (FL_ChatGeneration or 0)+1
 local FL711_Generation = FL_ChatGeneration
 local FL711_CatchesSinceSave=0
-local FL711_XPat = "<Examine:IIDDID:0x0%x+:0x700(%x+)>%[(.-)%]<\\Examine>"
 
 local function FL711_ChatHandler(sender,args)
     if FL711_Generation~=FL_ChatGeneration then
@@ -270,7 +248,7 @@ local function FL711_ChatHandler(sender,args)
     -- Save every 10 recognised catches. This keeps disk writes light while
     -- limiting loss if LOTRO crashes before the plugin unloads normally.
     if args and args.ChatType==Turbine.ChatType.SelfLoot and type(args.Message)=="string" then
-        local id=args.Message:match(FL711_XPat)
+        local id=FL_ExtractIIDDID(args.Message)
         if not id and Dusk and Dusk.Common and Dusk.Common.EII_ID then
             id=Dusk.Common.EII_ID(args.Message)
         end
@@ -285,13 +263,9 @@ local function FL711_ChatHandler(sender,args)
 
     -- Proficiency changes are rare and important enough to persist immediately.
     -- FL_Main has already updated Totals.fp and Profs before control returns here.
-    if args and args.ChatType==Turbine.ChatType.Advancement and type(args.Message)=="string" then
-        local low=string.lower(args.Message)
-        if (low:find("fishing",1,true) or low:find("pêche",1,true) or
-            low:find("peche",1,true) or low:find("angeln",1,true)) and
-            args.Message:match("(%d+)") then
-            FL711_SaveRuntimeData()
-        end
+    if args and args.ChatType==Turbine.ChatType.Advancement and
+       FL_ParseFishingAdvancement(args.Message,FL_Lang)~=nil then
+        FL711_SaveRuntimeData()
     end
     return result
 end
