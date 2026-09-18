@@ -219,7 +219,7 @@ function FL_Window:Constructor()
         FL_Command:Execute("fl","deeds")
     end
 
-    self.helperButton = self:AddField(Button, UI.helper, {x=30,y=270}, {x=300,y=20} )
+    self.helperButton = self:AddField(Button, UI.helper, {x=35,y=270}, {x=290,y=20} )
     self.helperButton.Click = function( sender,args )
         FL_HelperOpen()
     end
