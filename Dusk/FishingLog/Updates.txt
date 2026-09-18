@@ -1,3 +1,4 @@
+09/18/26 1.3-FR8.5	Isolated Lua apartment and plugin-local PluginData helpers with legacy/double-encoded save recovery.
 Version updates of the FishingLog plugin:
 07/11/26 1.3	Added proficiency across characters.
 07/10/26 1.2.1	Added Midsummer quest and fish.
