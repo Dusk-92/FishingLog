@@ -1,4 +1,4 @@
--- FishingLog FR9.0 release preflight.
+-- FishingLog FR9.1 release preflight.
 -- Validates saved state before FL_Main/FL_Window, keeps localized name caches
 -- separated, validates equipment shortcuts without unstable category IDs, and
 -- guards legacy runtime paths without adding another loader layer.
@@ -72,7 +72,7 @@ local function FL8_AppendQuarantine(scope,key,payload,callback)
         end
     end
 
-    table.insert(history.entries,{version="FR9.0",data=payload})
+    table.insert(history.entries,{version="FR9.1",data=payload})
     while #history.entries>FL8_QuarantineLimit do
         table.remove(history.entries,1)
     end
@@ -121,6 +121,23 @@ local function FL8_SanitizeOptions(scope,value)
     scale=math.max(0.5,math.min(2,scale))
     if rawScale~=scale then
         value.scale=scale
+        changed=true
+    end
+
+    -- Normalize old/invalid option shapes before the UI reads them.
+    if type(value.auto)=="table" then
+        if value.pos1==nil then
+            local ax,ay=FL_ToNumber(value.auto.x),FL_ToNumber(value.auto.y)
+            if ax~=nil and ay~=nil then value.pos1={x=ax,y=ay} end
+        end
+        value.auto=true
+        changed=true
+    elseif value.auto~=nil and type(value.auto)~="boolean" then
+        value.auto=nil
+        changed=true
+    end
+    if value.esc~=nil and type(value.esc)~="boolean" then
+        value.esc=nil
         changed=true
     end
 
@@ -495,15 +512,6 @@ if not FL8_OK then
         Dusk.Common.EII_ID=FL8_RawEII
     end
     error(FL8_Error)
-end
-
-if FL_Lang~="FR" and FL_Guide and FL_Guide.Groups and ID then
-    for _,group in pairs(FL_Guide.Groups) do
-        for _,fish in ipairs(group.fish or {}) do
-            local data=ID[fish.id]
-            fish.nameFR=(data and (data.ln or data.n)) or fish.id
-        end
-    end
 end
 
 if type(Totals)=="table" then

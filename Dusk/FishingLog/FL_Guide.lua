@@ -1,4 +1,4 @@
--- FishingLog FR8.0 - regional fishing/deed guide
+-- FishingLog FR9.1 - regional fishing/deed guide
 -- coding: utf-8
 --
 -- This file intentionally contains only reliable fishing-deed data. FishingLog
@@ -184,3 +184,13 @@ FL_Guide.SkillMilestones = {
     {150,L("Maître pêcheur à la ligne","Master Angler")},
     {200,L("Seigneur des Ruisseaux","Lord of Streams")},
 }
+
+function FL_Guide.GetSkillTitle(level)
+    local fp=FL_ToFishingLevel(level)
+    if fp==nil then return nil end
+    local title=nil
+    for _,m in ipairs(FL_Guide.SkillMilestones) do
+        if fp>=m[1] then title=m[2] else break end
+    end
+    return title
+end

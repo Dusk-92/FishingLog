@@ -25,19 +25,20 @@ local defaultY = math.max(0, math.floor(sh * 0.45))
 local FL_IconState = FL_PluginDataLoad(Turbine.DataScope.Server,"FL_IconState")
 if type(FL_IconState) ~= "table" then FL_IconState = {} end
 
-local savedX = tonumber(FL_IconState.x)
-local savedY = tonumber(FL_IconState.y)
+local savedX = FL_ToNumber(FL_IconState.x)
+local savedY = FL_ToNumber(FL_IconState.y)
 
 -- Migrate older FR6/FR7 saves once.
-if not savedX then savedX = tonumber(FL_Options and FL_Options.iconX) end
-if not savedY then savedY = tonumber(FL_Options and FL_Options.iconY) end
+if savedX==nil then savedX = FL_ToNumber(FL_Options and FL_Options.iconX) end
+if savedY==nil then savedY = FL_ToNumber(FL_Options and FL_Options.iconY) end
 if (not savedX or not savedY) and FL_Options and type(FL_Options.iconPos) == "table" then
-    savedX = savedX or tonumber(FL_Options.iconPos.x)
-    savedY = savedY or tonumber(FL_Options.iconPos.y)
+    savedX = savedX or FL_ToNumber(FL_Options.iconPos.x)
+    savedY = savedY or FL_ToNumber(FL_Options.iconPos.y)
 end
 
 local px = math.max(0, math.min(savedX or defaultX, sw - 32))
 local py = math.max(0, math.min(savedY or defaultY, sh - 32))
+local FL_IconNeedsSave = savedX==nil or savedY==nil or px~=savedX or py~=savedY
 FL_IconWindow:SetPosition(px,py)
 
 function FL_SaveIconPosition()
@@ -59,7 +60,7 @@ function FL_SaveIconPosition()
 end
 
 -- If we migrated an old position, immediately create the dedicated save.
-if not tonumber(FL_IconState.x) or not tonumber(FL_IconState.y) then
+if FL_IconNeedsSave then
     FL_SaveIconPosition()
 end
 

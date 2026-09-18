@@ -2,7 +2,7 @@
 
 Adaptation et maintenance française du plugin **FishingLog** de David Down pour *The Lord of the Rings Online*.
 
-Version actuelle : **1.3-FR9.0**.
+Version actuelle : **1.3-FR9.1**.
 
 ## Installation
 
@@ -33,6 +33,7 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 - **FR8.3** : suppression de la validation des cannes par l’ancienne catégorie numérique `104` ; la validation sûre du raccourci `Item` reste active ;
 - **FR8.4** : affichage de `Niveau de pêche : X` dans la fenêtre, initialisé depuis la maîtrise sauvegardée et mis à jour immédiatement lors d’une progression.
 - **FR9.0** : consolidation du gros audit — niveau de pêche strictement borné à 0–200 et restauré depuis `FL_Profs`, détection de progression durcie, Quickslots non destructifs, clamp corrigé à petite échelle, données de quêtes festival corrigées, suppression du bypass Shift devenu inutile et tests de régression étendus.
+- **FR9.1** : consolidation finale — réconciliation du niveau avec conservation de la valeur la plus élevée, parser de progression FR/EN/DE testable, format Carry-all `Gathered` couvert, suppression du dernier monkeypatch PluginData, titres de pêche unifiés, options/icône durcies et invariants CI renforcés.
 
 ## Commandes utiles
 
@@ -47,7 +48,7 @@ Puis charger **FishingLog** depuis le gestionnaire de plugins de LOTRO.
 
 ## Limite de l’API LOTRO
 
-FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR9.0 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
+FishingLog reconnaît les prises via leur ID dans les messages `SelfLoot`. LOTRO ne fournit pas au plugin une origine fiable indiquant qu’un objet générique provient précisément de l’action de pêche. La FR9.1 n’ajoute donc pas de filtre spéculatif qui pourrait supprimer de vraies prises ; les données sont comptées selon la base d’IDs FishingLog existante.
 
 ## Qualité / tests
 

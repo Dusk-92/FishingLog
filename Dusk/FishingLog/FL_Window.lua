@@ -140,7 +140,7 @@ function FL_Window:Constructor()
 	-- Create a weapon label
 	self:AddField(Label, UI.weapon, {x=45,y=95}, {x=70,y=16} )
 
-	-- Create an weapon field, weapon slot=16, cat=104
+	-- Create a weapon field
 	self.weapon = self:AddField(Quickslot, nil, {x=115,y=90}, {x=Qsize,y=Qsize} )
 	FL_RestoreSavedShortcut(self.weapon,Totals.wpn,"Dusk/FishingLog/Sword.tga")
 	self.weapon.ShortcutChanged = function( sender, args )
