@@ -15,7 +15,6 @@ local greyColor = Turbine.UI.Color( 0.1, 0.1, 0.1 )
 local Button = Turbine.UI.Lotro.Button
 local Label = Turbine.UI.Label
 local TextBox = Turbine.UI.TextBox
-local CheckBox = Turbine.UI.Lotro.CheckBox
 local Item = Turbine.UI.Lotro.ShortcutType.Item
 local Hobby = Turbine.UI.Lotro.ShortcutType.Hobby
 local Alias = Turbine.UI.Lotro.ShortcutType.Alias
@@ -216,7 +215,11 @@ function FL_Window:Constructor()
 
     self.deedsButton = self:AddField(Button, UI.deeds, {x=195,y=180}, {x=135,y=20} )
     self.deedsButton.Click = function( sender,args )
-        FL_Command:Execute("fl","deeds")
+        if type(FL_OpenDeeds)=="function" then
+            FL_OpenDeeds()
+        else
+            FL_Command:Execute("fl","deeds")
+        end
     end
 
     self.helperButton = self:AddField(Button, UI.helper, {x=35,y=270}, {x=290,y=20} )
