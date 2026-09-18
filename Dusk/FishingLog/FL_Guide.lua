@@ -1,4 +1,4 @@
--- FishingLog FR9.1 - regional fishing/deed guide
+-- FishingLog FR10.2 - regional fishing/deed guide
 -- coding: utf-8
 --
 -- This file intentionally contains only reliable fishing-deed data. FishingLog
@@ -159,13 +159,22 @@ function FL_Guide.GetDeed(key)
     return nil
 end
 
+function FL_Guide.GetFishInfo(id)
+    for _,g in pairs(FL_Guide.Groups) do
+        for _,f in ipairs(g.fish) do
+            if f.id==id then return f end
+        end
+    end
+    if id=="0F22C" then
+        return {id=id,nameFR="Saumon de 25 kilos",deed="salmon"}
+    end
+    return nil
+end
+
 function FL_Guide.GetFishLabel(id)
     if FL_Lang~="FR" then return nil end
-    for _,g in pairs(FL_Guide.Groups) do
-        for _,f in ipairs(g.fish) do if f.id==id then return f.nameFR end end
-    end
-    if id=="0F22C" then return "Saumon de 25 kilos" end
-    return nil
+    local info=FL_Guide.GetFishInfo(id)
+    return info and info.nameFR or nil
 end
 
 function FL_Guide.CountCaught(ids, totals)
