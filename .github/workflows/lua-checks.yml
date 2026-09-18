@@ -19,6 +19,9 @@ jobs:
           ! grep -F 'function Turbine.PluginData.Save' Dusk/Common/__init__.lua
           ! grep -F 'Turbine.PluginData.Load(' Dusk/FishingLog/FL_Main.lua
           ! grep -F 'Turbine.PluginData.Save(' Dusk/FishingLog/FL_Main.lua
+          ! grep -F 'Turbine.PluginData.Load =' Dusk/FishingLog/FL_Loader.lua
+          grep -F 'FL_ParseFishingAdvancement' Dusk/FishingLog/FL_Main.lua
+          grep -F 'FL_ExtractIIDDID' Dusk/FishingLog/FL_Main.lua
       - name: Install Lua 5.1
         run: |
           sudo apt-get update
