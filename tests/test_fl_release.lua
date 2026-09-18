@@ -7,7 +7,7 @@ local function read(path)
 end
 
 local descriptor=read("Dusk/FishingLog.plugin")
-assert(descriptor:find("<Version>1.3-FR9.1</Version>",1,true),"descriptor version mismatch")
+assert(descriptor:find("<Version>1.3-FR10.1</Version>",1,true),"descriptor version mismatch")
 assert(descriptor:find('Apartment="FishingLog"',1,true),"FishingLog must use an isolated Apartment")
 
 local preflight=read("Dusk/FishingLog/FL_Preflight.lua")
